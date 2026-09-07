@@ -33,6 +33,9 @@ class AppRepository(context: Context) {
 
     init {
         repoScope.launch {
+            // Purge any legacy demo account so users land directly on login/register
+            userDao.deleteDemoUser()
+
             // Restore last registered/logged in user if available
             val latest = userDao.getLatestUser()
             if (latest != null) {
@@ -51,86 +54,10 @@ class AppRepository(context: Context) {
                 val sid = sessionDao.insertSession(session)
                 _currentSession.value = session.copy(id = sid)
             } else {
-                // Pre-seed a default demo user so reviewer can explore immediately or create new account!
-                seedDemoAccount()
+                _currentUser.value = null
+                _currentSession.value = null
             }
         }
-    }
-
-    private suspend fun seedDemoAccount() {
-        val slug = "alex_secret"
-        val demoUser = UserEntity(
-            username = "Alexandre",
-            email = "alexandre@secretmsg.app",
-            passwordHash = SecurityUtils.hashPassword("secret123"),
-            profilePicUri = "preset_1",
-            bio = "Posez-moi vos questions anonymes ! Réponse assurée dans 4 jours.",
-            uniqueLinkSlug = slug
-        )
-        val uid = userDao.insertUser(demoUser)
-        val user = demoUser.copy(id = uid)
-        _currentUser.value = user
-
-        val token = SecurityUtils.generateSessionToken()
-        val session = SessionLogEntity(
-            userId = uid,
-            username = user.username,
-            deviceName = SecurityUtils.getDeviceModel(),
-            osVersion = SecurityUtils.getOsVersion(),
-            ipAddress = "192.168.1.42 (WiFi Sécurisé)",
-            locationEstimate = "Paris, FR (Session active)",
-            sessionToken = token
-        )
-        val sid = sessionDao.insertSession(session)
-        _currentSession.value = session.copy(id = sid)
-
-        // Seed an older session to demonstrate multi-session tracking!
-        sessionDao.insertSession(
-            SessionLogEntity(
-                userId = uid,
-                username = user.username,
-                deviceName = "Samsung Galaxy S24 Ultra",
-                osVersion = "Android 14 (API 34)",
-                ipAddress = "82.127.91.12 (4G Mobile)",
-                locationEstimate = "Lyon, FR (Session précédente)",
-                loginTimestamp = System.currentTimeMillis() - 86400000L * 2,
-                lastActiveTimestamp = System.currentTimeMillis() - 86400000L * 2,
-                isActive = false,
-                sessionToken = "sess_demo_past_session_s24"
-            )
-        )
-
-        // Seed 2 initial anonymous messages with 4-day countdown
-        val now = System.currentTimeMillis()
-        messageDao.insertMessage(
-            AnonymousMessageEntity(
-                recipientUserId = uid,
-                messageText = "Salut Alexandre ! Juste pour te dire que ton travail sur le projet est remarquable. Tu mérites vraiment d'être reconnu.",
-                receivedAt = now - 1000 * 60 * 30, // 30 mins ago
-                unlockAt = now + AnonymousMessageEntity.FOUR_DAYS_MS - 1000 * 60 * 30,
-                senderPseudo = "Un collègue du 3ème étage",
-                senderCoordinates = "Email: secret.team@societe.fr | Tel: +33 6 99 88 77 66 | Bureau 304",
-                senderDeviceInfo = "Chrome Mobile / Android",
-                tag = "Compliment",
-                isRead = false,
-                isFavorite = true
-            )
-        )
-
-        messageDao.insertMessage(
-            AnonymousMessageEntity(
-                recipientUserId = uid,
-                messageText = "J'ai toujours voulu te dire quelque chose en face mais je n'ai jamais osé... Rendez-vous dans 4 jours quand mon identité sera révélée !",
-                receivedAt = now - 1000 * 60 * 60 * 6, // 6 hours ago
-                unlockAt = now + AnonymousMessageEntity.FOUR_DAYS_MS - 1000 * 60 * 60 * 6,
-                senderPseudo = "Admirateur Secret",
-                senderCoordinates = "Instagram: @mysterious_friend | Ville: Bordeaux",
-                senderDeviceInfo = "Safari / iOS 17.5",
-                tag = "Mystère",
-                isRead = true,
-                isFavorite = false
-            )
-        )
     }
 
     suspend fun login(identifier: String, password: String): Result<UserEntity> = withContext(Dispatchers.IO) {

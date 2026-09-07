@@ -35,6 +35,12 @@ interface UserDao {
 
     @Update
     suspend fun updateUser(user: UserEntity)
+
+    @Query("DELETE FROM users WHERE id = :id")
+    suspend fun deleteUser(id: Long)
+
+    @Query("DELETE FROM users WHERE username = 'Alexandre' AND email = 'alexandre@secretmsg.app'")
+    suspend fun deleteDemoUser()
 }
 
 @Dao

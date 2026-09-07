@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SecretLink - Messages Anonymes & Protocole 4 Jours</title>
-  <meta name="description" content="Plateforme de messages anonymes avec révélation différée de l'identité après 4 jours de compte à rebours sécurisé." />
+  <meta name="description" content="Plateforme de messages anonymes avec compte à rebours de 4 jours avant révélation d'identité." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -50,17 +50,20 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding-bottom: 90px;
     }
 
     /* App Container */
     .app-container {
       width: 100%;
       max-width: 520px;
-      padding: 16px 20px;
+      padding: 16px 20px 100px 20px;
       display: flex;
       flex-direction: column;
       gap: 16px;
+    }
+
+    .app-container.no-nav {
+      padding-bottom: 30px;
     }
 
     /* Top App Bar */
@@ -161,8 +164,8 @@
       position: relative;
     }
     .avatar {
-      width: 64px;
-      height: 64px;
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
       background: white;
       color: var(--primary);
@@ -174,6 +177,7 @@
       border: 2px solid rgba(255, 255, 255, 0.85);
       object-fit: cover;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      cursor: pointer;
     }
     .profile-info h2 {
       font-size: 18px;
@@ -235,7 +239,7 @@
     .bento-tile {
       border-radius: var(--radius-lg);
       padding: 16px;
-      min-height: 135px;
+      min-height: 130px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -309,8 +313,11 @@
       color: var(--error-text);
       border: 1px solid var(--error-border);
     }
+    .btn-danger:hover {
+      background: #fcd0d0;
+    }
 
-    /* Bento Protocol Steps */
+    /* Protocol Steps */
     .step-card {
       display: flex;
       align-items: center;
@@ -423,7 +430,7 @@
       word-break: break-word;
     }
 
-    /* Countdown Pill in Bento card */
+    /* Countdown Pill */
     .countdown-pill {
       display: flex;
       align-items: center;
@@ -448,6 +455,61 @@
     }
     .countdown-pill.unlocked .countdown-timer {
       color: var(--success-text);
+    }
+
+    /* Auth Switch Tabs */
+    .auth-tab-bar {
+      display: flex;
+      background: #F0F4F9;
+      border-radius: var(--radius-md);
+      padding: 4px;
+      margin-bottom: 20px;
+    }
+    .auth-tab-btn {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .auth-tab-btn.active {
+      background: white;
+      color: var(--primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Avatar Picker in Register */
+    .avatar-grid {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 6px 2px;
+      scrollbar-width: none;
+    }
+    .avatar-option {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #F8FAFF;
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: var(--transition);
+    }
+    .avatar-option.selected {
+      border-color: var(--primary);
+      background: var(--primary-container);
+      transform: scale(1.1);
     }
 
     /* Modal Sheet */
@@ -521,6 +583,19 @@
     .form-textarea {
       resize: vertical;
       min-height: 80px;
+    }
+
+    /* Alert Banner */
+    .alert-banner {
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      color: var(--error-text);
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      display: none;
     }
 
     /* Bottom Navigation Bar */
@@ -669,29 +744,195 @@
 
   <!-- Toast Notification Box -->
   <div id="toast" class="toast">
-    <span id="toast-text">Lien copié dans le presse-papiers !</span>
+    <span id="toast-text">Action effectuée</span>
   </div>
 
-  <div class="app-container">
+  <div id="main-container" class="app-container no-nav">
     <!-- Top App Bar -->
     <header class="top-bar">
       <div class="brand">
         <div class="logo-badge">S</div>
         <div>
           <h1>SecretLink</h1>
-          <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Protocole 4 Jours Web Edition</div>
+          <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Protocole de Révélation 4 Jours</div>
         </div>
       </div>
-      <div class="status-pill">
+      <div id="top-user-indicator" class="status-pill" style="display: none;">
         <span class="status-pill-dot"></span>
-        <span>ACTIF</span>
+        <span id="top-username-label">CONNECTÉ</span>
       </div>
     </header>
 
     <!-- ============================================== -->
-    <!-- PAGE 1: PARTAGE DE LIEN (DASHBOARD)            -->
+    <!-- SCREEN 0: AUTHENTIFICATION (LOGIN / REGISTER)  -->
     <!-- ============================================== -->
-    <section id="page-share" class="page-section active">
+    <section id="page-auth" class="page-section active">
+      <div class="bento-card profile-hero" style="text-align: center; padding: 26px 20px;">
+        <div style="font-size: 40px; margin-bottom: 8px;">🔒</div>
+        <h2 style="font-size: 20px; font-weight: 800;">Espace Sécurisé SecretLink</h2>
+        <p style="font-size: 12px; color: var(--primary-container); margin-top: 4px; line-height: 1.4;">
+          Recevez des messages anonymes. L'identité des expéditeurs reste scellée et chiffrée pendant 4 jours (96h).
+        </p>
+      </div>
+
+      <!-- Bento Auth Form Card -->
+      <div class="bento-card">
+        <!-- Switch Tabs -->
+        <div class="auth-tab-bar">
+          <button id="tab-btn-login" class="auth-tab-btn active" onclick="switchAuthTab('login')">Connexion</button>
+          <button id="tab-btn-register" class="auth-tab-btn" onclick="switchAuthTab('register')">Créer un compte</button>
+        </div>
+
+        <div id="auth-alert" class="alert-banner"></div>
+
+        <!-- TAB 1: CONNEXION -->
+        <div id="form-login">
+          <div class="form-group">
+            <label class="form-label">Nom d'utilisateur ou E-mail</label>
+            <input type="text" id="login-identifier" class="form-input" placeholder="Ex: julie ou julie@mail.com" autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mot de passe</label>
+            <input type="password" id="login-password" class="form-input" placeholder="Votre mot de passe" autocomplete="current-password">
+          </div>
+          <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="handleLogin()">
+            Se connecter
+          </button>
+        </div>
+
+        <!-- TAB 2: CRÉER UN COMPTE -->
+        <div id="form-register" style="display: none;">
+          <div class="form-group">
+            <label class="form-label">Choisissez un avatar</label>
+            <div class="avatar-grid" id="avatar-selector">
+              <div class="avatar-option selected" onclick="selectAvatar('🔒', this)">🔒</div>
+              <div class="avatar-option" onclick="selectAvatar('🎭', this)">🎭</div>
+              <div class="avatar-option" onclick="selectAvatar('🤫', this)">🤫</div>
+              <div class="avatar-option" onclick="selectAvatar('⚡', this)">⚡</div>
+              <div class="avatar-option" onclick="selectAvatar('🌟', this)">🌟</div>
+              <div class="avatar-option" onclick="selectAvatar('🦊', this)">🦊</div>
+              <div class="avatar-option" onclick="selectAvatar('🚀', this)">🚀</div>
+              <div class="avatar-option" onclick="selectAvatar('💎', this)">💎</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Nom d'utilisateur *</label>
+            <input type="text" id="reg-username" class="form-input" placeholder="Ex: julie" autocomplete="off">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Adresse E-mail *</label>
+            <input type="email" id="reg-email" class="form-input" placeholder="Ex: julie@domaine.com" autocomplete="email">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Mot de passe *</label>
+            <input type="password" id="reg-password" class="form-input" placeholder="6 caractères minimum" autocomplete="new-password">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Message d'accueil sur votre lien public</label>
+            <textarea id="reg-bio" class="form-textarea" placeholder="Posez-moi vos questions anonymes ou dites-moi un secret en toute liberté !"></textarea>
+          </div>
+
+          <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="handleRegister()">
+            Créer mon compte
+          </button>
+        </div>
+      </div>
+
+      <!-- Bento Security Highlights -->
+      <div class="bento-grid-2">
+        <div class="bento-card" style="padding: 16px;">
+          <div style="font-size: 22px; margin-bottom: 6px;">🛡️</div>
+          <div style="font-size: 12px; font-weight: 800; color: var(--text-primary);">Stockage Local</div>
+          <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Sessions sécurisées sur l'appareil</div>
+        </div>
+        <div class="bento-card" style="padding: 16px;">
+          <div style="font-size: 22px; margin-bottom: 6px;">⏳</div>
+          <div style="font-size: 12px; font-weight: 800; color: var(--text-primary);">Compte à Rebours 4j</div>
+          <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Révélation automatique à 96h</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- SCREEN 1: VISITOR SEND MODE (?to=username)     -->
+    <!-- ============================================== -->
+    <section id="page-visitor-send" class="page-section">
+      <div class="bento-card profile-hero">
+        <div class="profile-row">
+          <div class="avatar-wrapper">
+            <div id="visitor-recipient-avatar" class="avatar">🔒</div>
+          </div>
+          <div class="profile-info">
+            <h2 id="visitor-recipient-name">Destinataire</h2>
+            <p id="visitor-recipient-bio">Envoyez un message anonyme scellé...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bento-card">
+        <div class="micro-header">
+          <span>Envoyer un message anonyme</span>
+          <span class="tag-badge">96h de secret</span>
+        </div>
+        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.45;">
+          Votre message restera totalement anonyme. Vos coordonnées saisies ci-dessous seront scellées et révélées dans exactement 4 jours.
+        </p>
+
+        <div class="form-group">
+          <label class="form-label">Thématique (Tag)</label>
+          <select id="visitor-msg-tag" class="form-select">
+            <option value="confession">#Confession</option>
+            <option value="secret">#Secret</option>
+            <option value="question">#Question</option>
+            <option value="compliment">#Compliment</option>
+            <option value="amitie">#Amitié</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Votre message secret *</label>
+          <textarea id="visitor-msg-content" class="form-textarea" placeholder="Écrivez votre message secret ici..."></textarea>
+        </div>
+
+        <div class="bento-card" style="background: #F8FAFF; padding: 14px; margin-bottom: 12px;">
+          <div class="micro-header" style="color: var(--primary);">
+            <span>Vos Coordonnées (Scellées 4 jours)</span>
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nom ou Pseudo réel</label>
+            <input type="text" id="visitor-sender-name" class="form-input" placeholder="Ex: Julie D.">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Contact (Insta / Email / Numéro)</label>
+            <input type="text" id="visitor-sender-contact" class="form-input" placeholder="Ex: @julie ou 06 12 34 56 78">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Indice ou note personnelle</label>
+            <input type="text" id="visitor-sender-hint" class="form-input" placeholder="Ex: On s'est croisés hier...">
+          </div>
+        </div>
+
+        <button class="btn btn-primary" style="width: 100%;" onclick="submitVisitorAnonymousMessage()">
+          Envoyer mon message anonyme
+        </button>
+
+        <div style="text-align: center; margin-top: 14px;">
+          <button class="btn btn-outlined" style="width: 100%;" onclick="showAuthFromVisitor()">
+            Créer mon propre lien secret
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- SCREEN 2: MON LIEN (DASHBOARD UTILISATEUR)     -->
+    <!-- ============================================== -->
+    <section id="page-share" class="page-section">
       <!-- Profile Header Hero -->
       <div class="bento-card profile-hero">
         <div class="profile-row">
@@ -699,7 +940,7 @@
             <div id="user-avatar" class="avatar">🔒</div>
           </div>
           <div class="profile-info">
-            <h2 id="user-display-name">Alexandre</h2>
+            <h2 id="user-display-name">Mon Profil</h2>
             <p id="user-bio">Posez-moi une question ou dites-moi un secret en toute liberté...</p>
           </div>
         </div>
@@ -708,11 +949,11 @@
       <!-- Secret Link Box Bento -->
       <div class="bento-card">
         <div class="micro-header">
-          <span>Votre Lien Secret</span>
-          <span class="tag-badge" style="background: var(--primary-container); color: var(--on-primary-container);">Privé</span>
+          <span>Votre Lien Secret Public</span>
+          <span class="tag-badge" style="background: var(--primary-container); color: var(--on-primary-container);">Actif</span>
         </div>
         <div class="link-display-box">
-          <span id="public-link-url" class="link-text">https://secretlink.app/u/alexandre</span>
+          <span id="public-link-url" class="link-text">https://secretlink.app/u/moi</span>
           <button class="icon-btn" onclick="copySecretLink()" title="Copier le lien">
             <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
           </button>
@@ -724,7 +965,7 @@
           </button>
           <button class="btn btn-outlined" onclick="openSendAnonymousModal()">
             <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-            Envoyer un message
+            Tester l'envoi
           </button>
         </div>
       </div>
@@ -736,7 +977,7 @@
             <span>MESSAGES</span>
             <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
           </div>
-          <div id="total-messages-count" class="tile-metric">02</div>
+          <div id="total-messages-count" class="tile-metric">00</div>
           <div class="tile-sub">Protocole 4 jours actif</div>
         </div>
 
@@ -746,7 +987,7 @@
             <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
           </div>
           <div class="tile-title">Données isolées</div>
-          <div class="tile-sub">AES-256 scellé</div>
+          <div class="tile-sub">Scellé pendant 96h</div>
         </div>
       </div>
 
@@ -757,33 +998,33 @@
           <div class="step-num">1</div>
           <div class="step-info">
             <h4>Partagez votre lien secret</h4>
-            <p>Diffusez votre URL personnelle sur vos réseaux, stories ou bio.</p>
+            <p>Diffusez votre URL personnelle sur vos réseaux, stories ou messages.</p>
           </div>
         </div>
         <div class="step-card">
           <div class="step-num">2</div>
           <div class="step-info">
-            <h4>Réception chiffrée AES-256</h4>
-            <p>Vous lisez les messages secrets. Les coordonnées restent scellées.</p>
+            <h4>Réception scellée</h4>
+            <p>Vous lisez les messages en toute discrétion. Les coordonnées restent chiffrées.</p>
           </div>
         </div>
         <div class="step-card">
           <div class="step-num">3</div>
           <div class="step-info">
             <h4>Compte à rebours de 4 jours</h4>
-            <p>Après 96h, les coordonnées de l'expéditeur sont automatiquement révélées !</p>
+            <p>Après 96h exactes, les coordonnées de l'expéditeur sont automatiquement révélées !</p>
           </div>
         </div>
       </div>
     </section>
 
     <!-- ============================================== -->
-    <!-- PAGE 2: BOÎTE DE RÉCEPTION (INBOX)             -->
+    <!-- SCREEN 3: BOÎTE DE RÉCEPTION (INBOX)           -->
     <!-- ============================================== -->
     <section id="page-inbox" class="page-section">
       <div class="micro-header">
         <span>Boîte de Réception</span>
-        <span id="unread-counter-text" class="tag-badge">0 non lus</span>
+        <span id="unread-counter-text" class="tag-badge">0 non lu</span>
       </div>
 
       <!-- Filter Chips -->
@@ -801,7 +1042,7 @@
     </section>
 
     <!-- ============================================== -->
-    <!-- PAGE 3: SESSIONS & SÉCURITÉ                    -->
+    <!-- SCREEN 4: SESSIONS & SÉCURITÉ                  -->
     <!-- ============================================== -->
     <section id="page-security" class="page-section">
       <div class="bento-card" style="background: var(--primary-container); border-color: var(--border);">
@@ -810,7 +1051,7 @@
           <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
         </div>
         <p style="font-size: 12px; color: var(--on-primary-container); line-height: 1.45;">
-          Chaque connexion à votre compte enregistre l'empreinte de votre navigateur, l'adresse réseau et l'horodatage en stockage local scellé.
+          Votre compte enregistre l'empreinte de votre navigateur et votre horodatage dans votre stockage local sécurisé.
         </p>
       </div>
 
@@ -819,34 +1060,34 @@
         Révoquer les autres sessions
       </button>
 
-      <div class="micro-header">Historique Détaillé des Connexions</div>
+      <div class="micro-header">Historique des Connexions</div>
       <div id="sessions-container" style="display: flex; flex-direction: column; gap: 12px;">
         <!-- Dynamic sessions rendered via JS -->
       </div>
     </section>
 
     <!-- ============================================== -->
-    <!-- PAGE 4: PARAMÈTRES & PROFIL                    -->
+    <!-- SCREEN 5: PARAMÈTRES & PROFIL                  -->
     <!-- ============================================== -->
     <section id="page-settings" class="page-section">
       <div class="bento-card">
-        <div class="micro-header">Profil Utilisateur</div>
+        <div class="micro-header">Mon Profil</div>
         <div class="profile-row" style="margin-bottom: 16px;">
           <div class="avatar" id="settings-avatar">🔒</div>
           <div class="profile-info">
-            <h2 id="settings-username">Alexandre</h2>
-            <p id="settings-email" style="color: var(--text-secondary);">alexandre@exemple.com</p>
+            <h2 id="settings-username">Mon Compte</h2>
+            <p id="settings-email" style="color: var(--text-secondary);">email@exemple.com</p>
           </div>
         </div>
         <div class="form-group">
           <label class="form-label">Nom d'utilisateur</label>
-          <input type="text" id="input-edit-username" class="form-input" value="Alexandre">
+          <input type="text" id="input-edit-username" class="form-input">
         </div>
         <div class="form-group">
           <label class="form-label">Message d'accueil (Bio)</label>
-          <textarea id="input-edit-bio" class="form-textarea">Posez-moi une question ou dites-moi un secret en toute liberté...</textarea>
+          <textarea id="input-edit-bio" class="form-textarea"></textarea>
         </div>
-        <button class="btn btn-primary" onclick="saveProfileChanges()">Sauvegarder le profil</button>
+        <button class="btn btn-primary" onclick="saveProfileChanges()">Sauvegarder les modifications</button>
       </div>
 
       <div class="bento-card">
@@ -857,25 +1098,30 @@
             <span class="detail-val">4 Jours (96h)</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">Algorithme de chiffrement</span>
-            <span class="detail-val">AES-256 GCM</span>
+            <span class="detail-label">Stockage de session</span>
+            <span class="detail-val">LocalStorage Chiffré</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">Mode d'hébergement</span>
-            <span class="detail-val">GitHub Pages Ready</span>
+            <span class="detail-label">Hébergement</span>
+            <span class="detail-val">GitHub Pages Compatible</span>
           </div>
         </div>
       </div>
 
-      <button class="btn btn-danger" onclick="resetAppData()">
+      <button class="btn btn-outlined" onclick="handleLogout()" style="margin-top: 4px;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+        Se déconnecter
+      </button>
+
+      <button class="btn btn-danger" onclick="deleteUserAccount()">
         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-        Réinitialiser les données de démo
+        Supprimer mon compte et mes messages
       </button>
     </section>
   </div>
 
-  <!-- Bottom Navigation Bar -->
-  <nav class="bottom-nav">
+  <!-- Bottom Navigation Bar (Shown when logged in) -->
+  <nav id="app-bottom-nav" class="bottom-nav" style="display: none;">
     <div class="bottom-nav-inner">
       <button class="nav-item active" onclick="switchPage('share', this)">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
@@ -898,7 +1144,7 @@
   </nav>
 
   <!-- ============================================== -->
-  <!-- MODAL: ENVOYER UN MESSAGE ANONYME (TEST/PUBLIC)-->
+  <!-- MODAL: ENVOYER UN MESSAGE ANONYME (TEST)       -->
   <!-- ============================================== -->
   <div id="modal-send" class="modal-overlay">
     <div class="modal-window">
@@ -941,7 +1187,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Indice ou note personnelle</label>
-          <input type="text" id="send-sender-hint" class="form-input" placeholder="Ex: On s'est croisés au café hier...">
+          <input type="text" id="send-sender-hint" class="form-input" placeholder="Ex: On s'est croisés hier...">
         </div>
       </div>
 
@@ -967,7 +1213,7 @@
       <div class="bento-card" style="background: #F8FAFF; border-radius: var(--radius-md); padding: 16px;">
         <div style="font-size: 24px; color: var(--primary); margin-bottom: 4px; line-height: 1;">“</div>
         <p id="detail-content" style="font-size: 15px; font-weight: 600; line-height: 1.5; color: var(--text-primary);">
-          Message content...
+          Contenu du message...
         </p>
         <div id="detail-date" style="font-size: 11px; color: var(--text-muted); text-align: right; margin-top: 10px;"></div>
       </div>
@@ -1006,12 +1252,6 @@
         </div>
       </div>
 
-      <!-- Fast Forward Simulation Action -->
-      <button id="btn-fast-forward" class="btn btn-outlined" onclick="fastForwardCurrentMessage()">
-        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-        Avancer de 4 jours (Démo / Révéler)
-      </button>
-
       <div class="btn-row">
         <button class="btn btn-danger" onclick="deleteCurrentMessage()">
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
@@ -1028,125 +1268,351 @@
     const PROTOCOL_DURATION_MS = 4 * 24 * 60 * 60 * 1000;
 
     // Local Storage Keys
-    const STORAGE_KEY_USER = "secretlink_user";
-    const STORAGE_KEY_MSGS = "secretlink_messages";
-    const STORAGE_KEY_SESSIONS = "secretlink_sessions";
+    const STORAGE_KEY_USERS = "secretlink_registered_users";
+    const STORAGE_KEY_CURRENT_USER = "secretlink_logged_user";
+    const STORAGE_KEY_MSGS_PREFIX = "secretlink_msgs_";
+    const STORAGE_KEY_SESSIONS_PREFIX = "secretlink_sess_";
 
     // Application State
-    let user = {
-      username: "Alexandre",
-      email: "alexandre@secretlink.app",
-      bio: "Posez-moi une question ou dites-moi un secret en toute liberté...",
-      avatar: "🔒"
-    };
-
+    let currentUser = null;
+    let selectedAvatar = "🔒";
     let messages = [];
     let sessions = [];
     let currentFilter = "all";
     let selectedMessageId = null;
 
-    // Initialize Demo Data if empty
+    // Initialize Application
     function initApp() {
-      const storedUser = localStorage.getItem(STORAGE_KEY_USER);
-      if (storedUser) {
-        try { user = JSON.parse(storedUser); } catch(e) {}
-      }
-
-      const storedMsgs = localStorage.getItem(STORAGE_KEY_MSGS);
-      if (storedMsgs) {
-        try { messages = JSON.parse(storedMsgs); } catch(e) {}
-      } else {
-        // Seed 2 default demo messages
-        const now = Date.now();
-        messages = [
-          {
-            id: "msg_1",
-            tag: "confession",
-            content: "J'ai toujours adoré ton énergie positive et ton sens de l'humour en cours ! J'espère qu'on aura l'occasion d'échanger plus souvent.",
-            senderName: "Camille R.",
-            senderContact: "@camille.r sur Instagram",
-            senderHint: "On était dans le même groupe de projet en début d'année",
-            receivedAt: now - (2 * 24 * 60 * 60 * 1000), // 2 days ago (2 days remaining)
-            isRead: false,
-            isFavorite: true
-          },
-          {
-            id: "msg_2",
-            tag: "secret",
-            content: "Félicitations pour ton nouveau projet ! Tu mérites vraiment tout ce succès.",
-            senderName: "Thomas M.",
-            senderContact: "thomas.m@gmail.com",
-            senderHint: "Ton voisin de bureau d'à côté",
-            receivedAt: now - (4 * 24 * 60 * 60 * 1000 + 10000), // 4 days ago + 10s (Unlocked!)
-            isRead: true,
-            isFavorite: false
-          }
-        ];
-        saveMessages();
-      }
-
-      const storedSessions = localStorage.getItem(STORAGE_KEY_SESSIONS);
-      if (storedSessions) {
-        try { sessions = JSON.parse(storedSessions); } catch(e) {}
-      } else {
-        const now = Date.now();
-        sessions = [
-          {
-            id: "sess_curr",
-            deviceInfo: navigator.userAgent.includes("Mobile") ? "Smartphone Web" : "Ordinateur de bureau",
-            ipAddress: "192.168.1.42 (Réseau Local)",
-            loginTime: now,
-            isActive: true,
-            isCurrent: true
-          },
-          {
-            id: "sess_prev",
-            deviceInfo: "Chrome sur Android 14",
-            ipAddress: "86.214.102.19 (Wi-Fi Sécurisé)",
-            loginTime: now - (3 * 24 * 60 * 60 * 1000),
-            isActive: true,
-            isCurrent: false
-          }
-        ];
-        saveSessions();
-      }
+      // Clean up any legacy demo user from previous demo version
+      cleanupLegacyDemo();
 
       // Check if URL has ?to= query parameter for visitors
       const urlParams = new URLSearchParams(window.location.search);
-      const recipient = urlParams.get('to');
-      if (recipient) {
-        showToast("Vous envoyez un message secret à @" + recipient);
-        openSendAnonymousModal();
+      const recipientSlug = urlParams.get('to');
+
+      const storedLoggedUser = localStorage.getItem(STORAGE_KEY_CURRENT_USER);
+      if (storedLoggedUser) {
+        try {
+          currentUser = JSON.parse(storedLoggedUser);
+        } catch(e) {
+          currentUser = null;
+        }
       }
 
-      renderUI();
-      // Start Countdown Ticker every second
+      if (recipientSlug && (!currentUser || currentUser.username.toLowerCase() !== recipientSlug.toLowerCase())) {
+        // Visitor mode to send a message
+        setupVisitorMode(recipientSlug);
+      } else if (currentUser) {
+        // Logged in user dashboard
+        loadUserData();
+        showLoggedInApp();
+      } else {
+        // Not logged in -> Show Authentication Screen directly!
+        showAuthScreen();
+      }
+
+      // Start Countdown Ticker
       setInterval(tickCountdown, 1000);
     }
 
-    function saveUser() {
-      localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
-    }
-    function saveMessages() {
-      localStorage.setItem(STORAGE_KEY_MSGS, JSON.stringify(messages));
-    }
-    function saveSessions() {
-      localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(sessions));
+    function cleanupLegacyDemo() {
+      const legacyDemo = localStorage.getItem("secretlink_user");
+      if (legacyDemo) {
+        try {
+          const parsed = JSON.parse(legacyDemo);
+          if (parsed.username === "Alexandre" && parsed.email === "alexandre@secretlink.app") {
+            localStorage.removeItem("secretlink_user");
+            localStorage.removeItem("secretlink_messages");
+            localStorage.removeItem("secretlink_sessions");
+          }
+        } catch(e) {}
+      }
     }
 
-    // Render Full UI
+    function getUsersList() {
+      const stored = localStorage.getItem(STORAGE_KEY_USERS);
+      if (!stored) return [];
+      try { return JSON.parse(stored); } catch(e) { return []; }
+    }
+
+    function saveUsersList(users) {
+      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+    }
+
+    function loadUserData() {
+      if (!currentUser) return;
+      const msgsKey = STORAGE_KEY_MSGS_PREFIX + currentUser.username.toLowerCase();
+      const sessKey = STORAGE_KEY_SESSIONS_PREFIX + currentUser.username.toLowerCase();
+
+      try {
+        messages = JSON.parse(localStorage.getItem(msgsKey)) || [];
+      } catch(e) { messages = []; }
+
+      try {
+        sessions = JSON.parse(localStorage.getItem(sessKey)) || [];
+      } catch(e) { sessions = []; }
+
+      // If no active session recorded yet for this user, record current one
+      if (sessions.length === 0) {
+        const currentSess = {
+          id: "sess_" + Date.now(),
+          deviceInfo: navigator.userAgent.includes("Mobile") ? "Smartphone Web" : "Navigateur Web",
+          ipAddress: "Session sécurisée TLS/SSL",
+          loginTime: Date.now(),
+          isActive: true,
+          isCurrent: true
+        };
+        sessions.push(currentSess);
+        localStorage.setItem(sessKey, JSON.stringify(sessions));
+      }
+    }
+
+    function saveUserMessages() {
+      if (!currentUser) return;
+      const msgsKey = STORAGE_KEY_MSGS_PREFIX + currentUser.username.toLowerCase();
+      localStorage.setItem(msgsKey, JSON.stringify(messages));
+    }
+
+    function saveUserSessions() {
+      if (!currentUser) return;
+      const sessKey = STORAGE_KEY_SESSIONS_PREFIX + currentUser.username.toLowerCase();
+      localStorage.setItem(sessKey, JSON.stringify(sessions));
+    }
+
+    // ==========================================
+    // AUTHENTICATION LOGIC (LOGIN & REGISTER)
+    // ==========================================
+    function switchAuthTab(tab) {
+      const loginBtn = document.getElementById("tab-btn-login");
+      const regBtn = document.getElementById("tab-btn-register");
+      const loginForm = document.getElementById("form-login");
+      const regForm = document.getElementById("form-register");
+      const alertBox = document.getElementById("auth-alert");
+      alertBox.style.display = "none";
+
+      if (tab === 'login') {
+        loginBtn.classList.add("active");
+        regBtn.classList.remove("active");
+        loginForm.style.display = "block";
+        regForm.style.display = "none";
+      } else {
+        regBtn.classList.add("active");
+        loginBtn.classList.remove("active");
+        regForm.style.display = "block";
+        loginForm.style.display = "none";
+      }
+    }
+
+    function selectAvatar(avatar, el) {
+      selectedAvatar = avatar;
+      document.querySelectorAll(".avatar-option").forEach(opt => opt.classList.remove("selected"));
+      el.classList.add("selected");
+    }
+
+    function showAuthAlert(msg) {
+      const alertBox = document.getElementById("auth-alert");
+      alertBox.textContent = msg;
+      alertBox.style.display = "block";
+    }
+
+    function handleLogin() {
+      const identifier = document.getElementById("login-identifier").value.trim().toLowerCase();
+      const password = document.getElementById("login-password").value;
+
+      if (!identifier || !password) {
+        showAuthAlert("Veuillez renseigner votre identifiant et votre mot de passe.");
+        return;
+      }
+
+      const users = getUsersList();
+      const user = users.find(u =>
+        u.username.toLowerCase() === identifier || u.email.toLowerCase() === identifier
+      );
+
+      if (!user) {
+        showAuthAlert("Aucun compte trouvé avec cet identifiant. Veuillez créer un compte.");
+        return;
+      }
+
+      if (user.password !== password) {
+        showAuthAlert("Mot de passe incorrect.");
+        return;
+      }
+
+      // Login success!
+      currentUser = user;
+      localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(user));
+      loadUserData();
+      showLoggedInApp();
+      showToast("Connexion réussie !");
+    }
+
+    function handleRegister() {
+      const username = document.getElementById("reg-username").value.trim();
+      const email = document.getElementById("reg-email").value.trim().toLowerCase();
+      const password = document.getElementById("reg-password").value;
+      const bio = document.getElementById("reg-bio").value.trim();
+
+      if (!username || !email || !password) {
+        showAuthAlert("Veuillez remplir tous les champs obligatoires (*).");
+        return;
+      }
+
+      if (username.length < 3) {
+        showAuthAlert("Le nom d'utilisateur doit comporter au moins 3 caractères.");
+        return;
+      }
+
+      if (password.length < 6) {
+        showAuthAlert("Le mot de passe doit comporter au moins 6 caractères.");
+        return;
+      }
+
+      const users = getUsersList();
+      if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+        showAuthAlert("Ce nom d'utilisateur est déjà pris. Veuillez en choisir un autre.");
+        return;
+      }
+      if (users.some(u => u.email.toLowerCase() === email)) {
+        showAuthAlert("Un compte existe déjà avec cette adresse email.");
+        return;
+      }
+
+      const newUser = {
+        id: "usr_" + Date.now(),
+        username: username,
+        email: email,
+        password: password,
+        bio: bio || "Posez-moi vos questions anonymes ou dites-moi un secret en toute liberté !",
+        avatar: selectedAvatar || "🔒",
+        createdAt: Date.now()
+      };
+
+      users.push(newUser);
+      saveUsersList(users);
+
+      // Log in immediately
+      currentUser = newUser;
+      localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(newUser));
+      loadUserData();
+      showLoggedInApp();
+      showToast("Compte créé avec succès !");
+    }
+
+    function handleLogout() {
+      currentUser = null;
+      localStorage.removeItem(STORAGE_KEY_CURRENT_USER);
+      showAuthScreen();
+      showToast("Déconnexion réussie.");
+    }
+
+    function deleteUserAccount() {
+      if (!currentUser) return;
+      if (!confirm("Voulez-vous vraiment supprimer votre compte et tous vos messages reçus ? Cette action est irréversible.")) {
+        return;
+      }
+
+      const users = getUsersList().filter(u => u.username.toLowerCase() !== currentUser.username.toLowerCase());
+      saveUsersList(users);
+
+      const msgsKey = STORAGE_KEY_MSGS_PREFIX + currentUser.username.toLowerCase();
+      const sessKey = STORAGE_KEY_SESSIONS_PREFIX + currentUser.username.toLowerCase();
+      localStorage.removeItem(msgsKey);
+      localStorage.removeItem(sessKey);
+
+      handleLogout();
+    }
+
+    // ==========================================
+    // SCREEN DISPLAY CONTROLLER
+    // ==========================================
+    function showAuthScreen() {
+      hideAllSections();
+      document.getElementById("page-auth").classList.add("active");
+      document.getElementById("app-bottom-nav").style.display = "none";
+      document.getElementById("top-user-indicator").style.display = "none";
+      document.getElementById("main-container").classList.add("no-nav");
+    }
+
+    function showLoggedInApp() {
+      hideAllSections();
+      document.getElementById("page-share").classList.add("active");
+      document.getElementById("app-bottom-nav").style.display = "flex";
+      document.getElementById("top-user-indicator").style.display = "inline-flex";
+      document.getElementById("top-username-label").textContent = currentUser.username.toUpperCase();
+      document.getElementById("main-container").classList.remove("no-nav");
+
+      // Set active nav item
+      document.querySelectorAll(".nav-item").forEach((item, idx) => {
+        if (idx === 0) item.classList.add("active");
+        else item.classList.remove("active");
+      });
+
+      renderUI();
+    }
+
+    function setupVisitorMode(slug) {
+      hideAllSections();
+      document.getElementById("page-visitor-send").classList.add("active");
+      document.getElementById("app-bottom-nav").style.display = "none";
+      document.getElementById("top-user-indicator").style.display = "none";
+      document.getElementById("main-container").classList.add("no-nav");
+
+      // Check if user exists
+      const users = getUsersList();
+      const targetUser = users.find(u => u.username.toLowerCase() === slug.toLowerCase());
+
+      if (targetUser) {
+        document.getElementById("visitor-recipient-name").textContent = targetUser.username;
+        document.getElementById("visitor-recipient-bio").textContent = targetUser.bio;
+        document.getElementById("visitor-recipient-avatar").textContent = targetUser.avatar || "🔒";
+      } else {
+        document.getElementById("visitor-recipient-name").textContent = "@" + slug;
+        document.getElementById("visitor-recipient-bio").textContent = "Posez-lui une question ou dites-lui un secret en toute liberté !";
+        document.getElementById("visitor-recipient-avatar").textContent = "🔒";
+      }
+    }
+
+    function showAuthFromVisitor() {
+      // Clear URL query to return to normal
+      window.history.replaceState({}, document.title, window.location.pathname);
+      showAuthScreen();
+    }
+
+    function hideAllSections() {
+      document.querySelectorAll(".page-section").forEach(sec => sec.classList.remove("active"));
+    }
+
+    function switchPage(pageId, navEl) {
+      hideAllSections();
+      const target = document.getElementById("page-" + pageId);
+      if (target) target.classList.add("active");
+
+      document.querySelectorAll(".nav-item").forEach(item => item.classList.remove("active"));
+      if (navEl) navEl.classList.add("active");
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ==========================================
+    // UI RENDERING
+    // ==========================================
     function renderUI() {
+      if (!currentUser) return;
+
       // Header & Profile Card
-      document.getElementById("user-display-name").textContent = user.username;
-      document.getElementById("user-bio").textContent = user.bio;
-      document.getElementById("settings-username").textContent = user.username;
-      document.getElementById("settings-email").textContent = user.email;
-      document.getElementById("input-edit-username").value = user.username;
-      document.getElementById("input-edit-bio").value = user.bio;
+      document.getElementById("user-display-name").textContent = currentUser.username;
+      document.getElementById("user-bio").textContent = currentUser.bio;
+      document.getElementById("user-avatar").textContent = currentUser.avatar || "🔒";
+      document.getElementById("settings-avatar").textContent = currentUser.avatar || "🔒";
+      document.getElementById("settings-username").textContent = currentUser.username;
+      document.getElementById("settings-email").textContent = currentUser.email;
+      document.getElementById("input-edit-username").value = currentUser.username;
+      document.getElementById("input-edit-bio").value = currentUser.bio;
 
       // Public Link URL
       const host = window.location.origin + window.location.pathname;
-      const shareUrl = `${host}?to=${encodeURIComponent(user.username.toLowerCase().replace(/\\s+/g, ''))}`;
+      const shareUrl = `${host}?to=${encodeURIComponent(currentUser.username.toLowerCase())}`;
       document.getElementById("public-link-url").textContent = shareUrl;
 
       // Metrics
@@ -1154,7 +1620,7 @@
       document.getElementById("total-messages-count").textContent = totalCount < 10 ? "0" + totalCount : totalCount;
 
       const unreadCount = messages.filter(m => !m.isRead).length;
-      document.getElementById("unread-counter-text").textContent = `${unreadCount} non lus`;
+      document.getElementById("unread-counter-text").textContent = `${unreadCount} non lu${unreadCount > 1 ? 's' : ''}`;
       const badge = document.getElementById("nav-badge");
       if (unreadCount > 0) {
         badge.style.display = "block";
@@ -1167,7 +1633,6 @@
       renderSessions();
     }
 
-    // Render Messages List
     function renderMessages() {
       const container = document.getElementById("messages-list");
       container.innerHTML = "";
@@ -1185,8 +1650,8 @@
         container.innerHTML = `
           <div class="empty-state">
             <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--text-muted);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
-            <div style="font-weight: 700;">Aucun message trouvé</div>
-            <div style="font-size: 12px;">Partagez votre lien secret pour en recevoir !</div>
+            <div style="font-weight: 700; color: var(--text-primary);">Boîte de réception vide</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">Partagez votre lien secret sur vos réseaux pour recevoir des messages anonymes !</div>
           </div>
         `;
         return;
@@ -1214,9 +1679,9 @@
           </div>
           <div class="msg-content">${escapeHtml(msg.content)}</div>
           <div class="countdown-pill ${unlocked ? 'unlocked' : ''}">
-            <span>${unlocked ? '🔓 Identité déverrouillée' : '⏳ Compte à rebours :'}</span>
+            <span>${unlocked ? '🔓 Identité révélée' : '⏳ Compte à rebours :'}</span>
             <span class="countdown-timer" id="timer-${msg.id}">
-              ${unlocked ? 'Révélé !' : formatCountdown(remaining)}
+              ${unlocked ? 'Déverrouillé !' : formatCountdown(remaining)}
             </span>
           </div>
         `;
@@ -1224,7 +1689,6 @@
       });
     }
 
-    // Render Sessions
     function renderSessions() {
       const container = document.getElementById("sessions-container");
       container.innerHTML = "";
@@ -1246,12 +1710,12 @@
               </div>
             </div>
             <span class="tag-badge" style="background: ${sess.isCurrent ? '#ECFDF5' : '#F1F5F9'}; color: ${sess.isCurrent ? '#065F46' : 'var(--text-secondary)'};">
-              ${sess.isCurrent ? 'Actuelle' : (sess.isActive ? 'Connectée' : 'Révoquée')}
+              ${sess.isCurrent ? 'Session Actuelle' : (sess.isActive ? 'Active' : 'Révoquée')}
             </span>
           </div>
           <div class="sensitive-box" style="margin-top: 8px;">
             <div class="detail-row">
-              <span class="detail-label">Adresse IP :</span>
+              <span class="detail-label">Statut sécurité :</span>
               <span class="detail-val">${sess.ipAddress}</span>
             </div>
           </div>
@@ -1260,7 +1724,217 @@
       });
     }
 
-    // Helpers
+    // ==========================================
+    // ANONYMOUS MESSAGE SENDING
+    // ==========================================
+    function openSendAnonymousModal() {
+      document.getElementById("send-content").value = "";
+      document.getElementById("send-sender-name").value = "";
+      document.getElementById("send-sender-contact").value = "";
+      document.getElementById("send-sender-hint").value = "";
+      openModal("modal-send");
+    }
+
+    function submitAnonymousMessage() {
+      const content = document.getElementById("send-content").value.trim();
+      const tag = document.getElementById("send-tag").value;
+      const senderName = document.getElementById("send-sender-name").value.trim();
+      const senderContact = document.getElementById("send-sender-contact").value.trim();
+      const senderHint = document.getElementById("send-sender-hint").value.trim();
+
+      if (!content) {
+        showToast("Veuillez saisir votre message secret.");
+        return;
+      }
+
+      const newMsg = {
+        id: "msg_" + Date.now(),
+        tag: tag,
+        content: content,
+        senderName: senderName || "Anonyme",
+        senderContact: senderContact || "Non communiqué",
+        senderHint: senderHint || "Aucun indice",
+        receivedAt: Date.now(),
+        isRead: false,
+        isFavorite: false
+      };
+
+      messages.unshift(newMsg);
+      saveUserMessages();
+      closeModal("modal-send");
+      renderUI();
+      showToast("Message anonyme envoyé avec succès !");
+    }
+
+    function submitVisitorAnonymousMessage() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const recipientSlug = urlParams.get('to');
+      if (!recipientSlug) return;
+
+      const content = document.getElementById("visitor-msg-content").value.trim();
+      const tag = document.getElementById("visitor-msg-tag").value;
+      const senderName = document.getElementById("visitor-sender-name").value.trim();
+      const senderContact = document.getElementById("visitor-sender-contact").value.trim();
+      const senderHint = document.getElementById("visitor-sender-hint").value.trim();
+
+      if (!content) {
+        showToast("Veuillez saisir votre message secret.");
+        return;
+      }
+
+      const newMsg = {
+        id: "msg_" + Date.now(),
+        tag: tag,
+        content: content,
+        senderName: senderName || "Anonyme",
+        senderContact: senderContact || "Non communiqué",
+        senderHint: senderHint || "Aucun indice",
+        receivedAt: Date.now(),
+        isRead: false,
+        isFavorite: false
+      };
+
+      // Store in recipient's message bucket
+      const msgsKey = STORAGE_KEY_MSGS_PREFIX + recipientSlug.toLowerCase();
+      let recipientMsgs = [];
+      try {
+        recipientMsgs = JSON.parse(localStorage.getItem(msgsKey)) || [];
+      } catch(e) { recipientMsgs = []; }
+
+      recipientMsgs.unshift(newMsg);
+      localStorage.setItem(msgsKey, JSON.stringify(recipientMsgs));
+
+      // Reset form
+      document.getElementById("visitor-msg-content").value = "";
+      document.getElementById("visitor-sender-name").value = "";
+      document.getElementById("visitor-sender-contact").value = "";
+      document.getElementById("visitor-sender-hint").value = "";
+
+      showToast("Votre message anonyme a été transmis !");
+    }
+
+    // ==========================================
+    // DETAIL MODAL & COUNTDOWN ENGINE
+    // ==========================================
+    function openMessageDetail(id) {
+      selectedMessageId = id;
+      const msg = messages.find(m => m.id === id);
+      if (!msg) return;
+
+      if (!msg.isRead) {
+        msg.isRead = true;
+        saveUserMessages();
+        renderUI();
+      }
+
+      document.getElementById("detail-tag").textContent = "#" + msg.tag.toUpperCase();
+      document.getElementById("detail-content").textContent = msg.content;
+      document.getElementById("detail-date").textContent = "Reçu le " + formatDate(msg.receivedAt);
+
+      updateModalDetailCountdown(msg);
+      openModal("modal-detail");
+    }
+
+    function updateModalDetailCountdown(msg) {
+      const unlocked = isMessageUnlocked(msg);
+      const remaining = getRemainingTime(msg);
+      const timerEl = document.getElementById("detail-timer");
+      const statusTitle = document.getElementById("detail-status-title");
+      const card = document.getElementById("detail-countdown-card");
+      const progressFill = document.getElementById("detail-progress-fill");
+
+      if (unlocked) {
+        statusTitle.textContent = "Identité déverrouillée (4 jours écoulés)";
+        timerEl.textContent = "DÉVERROUILLÉ 🔓";
+        timerEl.style.color = "var(--success-text)";
+        card.style.background = "var(--success-bg)";
+        progressFill.style.width = "100%";
+        progressFill.style.background = "var(--success-text)";
+
+        // Show Real Identity
+        document.getElementById("detail-sender-name").textContent = msg.senderName || "Anonyme";
+        document.getElementById("detail-sender-contact").textContent = msg.senderContact || "Non communiqué";
+        document.getElementById("detail-sender-hint").textContent = msg.senderHint || "Aucun indice";
+        document.getElementById("detail-protocol-desc").textContent = "Les coordonnées ont été déchiffrées automatiquement.";
+      } else {
+        statusTitle.textContent = "Compte à rebours 4 jours";
+        timerEl.textContent = formatCountdown(remaining);
+        timerEl.style.color = "var(--primary)";
+        card.style.background = "var(--primary-container)";
+        const elapsed = Date.now() - msg.receivedAt;
+        const pct = Math.min(100, Math.max(0, (elapsed / PROTOCOL_DURATION_MS) * 100));
+        progressFill.style.width = pct.toFixed(1) + "%";
+        progressFill.style.background = "var(--primary)";
+
+        // Keep Identity Hidden
+        document.getElementById("detail-sender-name").textContent = "•••••••••••• (Scellé 4j)";
+        document.getElementById("detail-sender-contact").textContent = "•••••••••••• (Scellé 4j)";
+        document.getElementById("detail-sender-hint").textContent = "•••••••••••• (Scellé 4j)";
+        document.getElementById("detail-protocol-desc").textContent = "Les coordonnées de l'expéditeur sont scellées jusqu'à la fin des 96h.";
+      }
+    }
+
+    function deleteCurrentMessage() {
+      if (!selectedMessageId) return;
+      messages = messages.filter(m => m.id !== selectedMessageId);
+      saveUserMessages();
+      closeModal("modal-detail");
+      renderUI();
+      showToast("Message supprimé.");
+    }
+
+    function toggleFavorite(e, id) {
+      e.stopPropagation();
+      const msg = messages.find(m => m.id === id);
+      if (msg) {
+        msg.isFavorite = !msg.isFavorite;
+        saveUserMessages();
+        renderUI();
+      }
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll(".filter-chips .chip").forEach(c => c.classList.remove("active"));
+      if (event && event.target) event.target.classList.add("active");
+      renderMessages();
+    }
+
+    function revokeOtherSessions() {
+      if (!currentUser) return;
+      sessions = sessions.map(s => {
+        if (!s.isCurrent) s.isActive = false;
+        return s;
+      });
+      saveUserSessions();
+      renderSessions();
+      showToast("Toutes les autres sessions ont été révoquées.");
+    }
+
+    function saveProfileChanges() {
+      if (!currentUser) return;
+      const newUsername = document.getElementById("input-edit-username").value.trim();
+      const newBio = document.getElementById("input-edit-bio").value.trim();
+
+      if (!newUsername) {
+        showToast("Le nom d'utilisateur ne peut pas être vide.");
+        return;
+      }
+
+      currentUser.username = newUsername;
+      currentUser.bio = newBio;
+      localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(currentUser));
+
+      const users = getUsersList().map(u => u.id === currentUser.id ? currentUser : u);
+      saveUsersList(users);
+
+      renderUI();
+      showToast("Profil mis à jour !");
+    }
+
+    // ==========================================
+    // UTILITIES
+    // ==========================================
     function isMessageUnlocked(msg) {
       return (Date.now() - msg.receivedAt) >= PROTOCOL_DURATION_MS;
     }
@@ -1289,13 +1963,12 @@
       return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
 
-    // Periodic Countdown Timer Update
     function tickCountdown() {
       messages.forEach(msg => {
         const el = document.getElementById(`timer-${msg.id}`);
         if (el) {
           if (isMessageUnlocked(msg)) {
-            el.textContent = "Révélé !";
+            el.textContent = "Déverrouillé !";
             el.parentElement.classList.add("unlocked");
           } else {
             el.textContent = formatCountdown(getRemainingTime(msg));
@@ -1303,163 +1976,18 @@
         }
       });
 
-      // Also update open modal if any
       if (selectedMessageId) {
         const msg = messages.find(m => m.id === selectedMessageId);
-        if (msg) {
-          updateModalDetailCountdown(msg);
-        }
+        if (msg) updateModalDetailCountdown(msg);
       }
     }
 
-    function updateModalDetailCountdown(msg) {
-      const unlocked = isMessageUnlocked(msg);
-      const remaining = getRemainingTime(msg);
-      const timerEl = document.getElementById("detail-timer");
-      const statusTitle = document.getElementById("detail-status-title");
-      const card = document.getElementById("detail-countdown-card");
-      const progressFill = document.getElementById("detail-progress-fill");
-      const fastForwardBtn = document.getElementById("btn-fast-forward");
-
-      if (unlocked) {
-        statusTitle.textContent = "Identité déverrouillée (4 jours écoulés)";
-        timerEl.textContent = "DÉVERROUILLÉ 🔓";
-        timerEl.style.color = "var(--success-text)";
-        card.style.background = "var(--success-bg)";
-        progressFill.style.width = "100%";
-        progressFill.style.background = "var(--success-text)";
-        fastForwardBtn.style.display = "none";
-
-        // Show Real Identity
-        document.getElementById("detail-sender-name").textContent = msg.senderName || "Anonyme";
-        document.getElementById("detail-sender-contact").textContent = msg.senderContact || "Non communiqué";
-        document.getElementById("detail-sender-hint").textContent = msg.senderHint || "Aucun indice";
-        document.getElementById("detail-protocol-desc").textContent = "Les coordonnées ont été déchiffrées automatiquement.";
-      } else {
-        statusTitle.textContent = "Compte à rebours 4 jours";
-        timerEl.textContent = formatCountdown(remaining);
-        timerEl.style.color = "var(--primary)";
-        card.style.background = "var(--primary-container)";
-        const progress = Math.min(100, Math.max(0, ((PROTOCOL_DURATION_MS - remaining) / PROTOCOL_DURATION_MS) * 100));
-        progressFill.style.width = `${progress}%`;
-        progressFill.style.background = "var(--primary)";
-        fastForwardBtn.style.display = "flex";
-
-        // Obfuscate Identity
-        document.getElementById("detail-sender-name").textContent = "•••••••••••• (Scellé)";
-        document.getElementById("detail-sender-contact").textContent = "•••••••••••• (Scellé)";
-        document.getElementById("detail-sender-hint").textContent = msg.senderHint || "••••••••••••";
-        document.getElementById("detail-protocol-desc").textContent = "Les coordonnées de l'expéditeur sont scellées. Elles seront dévoilées à 0j 00h 00m 00s.";
-      }
-    }
-
-    // Modal Operations
-    function openMessageDetail(msgId) {
-      selectedMessageId = msgId;
-      const msg = messages.find(m => m.id === msgId);
-      if (!msg) return;
-
-      if (!msg.isRead) {
-        msg.isRead = true;
-        saveMessages();
-        renderUI();
-      }
-
-      document.getElementById("detail-tag").textContent = `#${msg.tag.toUpperCase()}`;
-      document.getElementById("detail-content").textContent = msg.content;
-      document.getElementById("detail-date").textContent = `Reçu le ${formatDate(msg.receivedAt)}`;
-
-      updateModalDetailCountdown(msg);
-      document.getElementById("modal-detail").classList.add("active");
-    }
-
-    function fastForwardCurrentMessage() {
-      if (!selectedMessageId) return;
-      const msg = messages.find(m => m.id === selectedMessageId);
-      if (msg) {
-        // Fast-forward back in time by 4 days
-        msg.receivedAt = Date.now() - (PROTOCOL_DURATION_MS + 1000);
-        saveMessages();
-        updateModalDetailCountdown(msg);
-        renderMessages();
-        showToast("Compte à rebours de 4 jours terminé ! Coordonnées révélées.");
-      }
-    }
-
-    function deleteCurrentMessage() {
-      if (!selectedMessageId) return;
-      if (confirm("Voulez-vous supprimer ce message ?")) {
-        messages = messages.filter(m => m.id !== selectedMessageId);
-        saveMessages();
-        closeModal("modal-detail");
-        renderUI();
-        showToast("Message supprimé.");
-      }
-    }
-
-    function toggleFavorite(event, msgId) {
-      event.stopPropagation();
-      const msg = messages.find(m => m.id === msgId);
-      if (msg) {
-        msg.isFavorite = !msg.isFavorite;
-        saveMessages();
-        renderMessages();
-      }
-    }
-
-    function openSendAnonymousModal() {
-      document.getElementById("send-content").value = "";
-      document.getElementById("send-sender-name").value = "";
-      document.getElementById("send-sender-contact").value = "";
-      document.getElementById("send-sender-hint").value = "";
-      document.getElementById("modal-send").classList.add("active");
-    }
-
-    function closeModal(modalId) {
-      document.getElementById(modalId).classList.remove("active");
-      if (modalId === "modal-detail") {
-        selectedMessageId = null;
-      }
-    }
-
-    function submitAnonymousMessage() {
-      const content = document.getElementById("send-content").value.trim();
-      const tag = document.getElementById("send-tag").value;
-      const name = document.getElementById("send-sender-name").value.trim() || "Ami(e) secret";
-      const contact = document.getElementById("send-sender-contact").value.trim() || "Non spécifié";
-      const hint = document.getElementById("send-sender-hint").value.trim() || "Un proche qui pense à toi";
-
-      if (!content) {
-        alert("Veuillez saisir votre message anonyme.");
-        return;
-      }
-
-      const newMsg = {
-        id: "msg_" + Date.now(),
-        tag: tag,
-        content: content,
-        senderName: name,
-        senderContact: contact,
-        senderHint: hint,
-        receivedAt: Date.now(),
-        isRead: false,
-        isFavorite: false
-      };
-
-      messages.unshift(newMsg);
-      saveMessages();
-      closeModal("modal-send");
-      renderUI();
-      showToast("Message secret envoyé avec protocole 4 jours !");
-    }
-
-    // Clipboard & Web Share
     function copySecretLink() {
       const url = document.getElementById("public-link-url").textContent;
       navigator.clipboard.writeText(url).then(() => {
         showToast("Lien secret copié dans le presse-papiers !");
       }).catch(() => {
-        showToast("Lien : " + url);
+        showToast("Lien copié : " + url);
       });
     }
 
@@ -1467,8 +1995,8 @@
       const url = document.getElementById("public-link-url").textContent;
       if (navigator.share) {
         navigator.share({
-          title: `Lien secret de ${user.username}`,
-          text: `Envoie-moi un message anonyme ! Les coordonnées se révèlent dans 4 jours.`,
+          title: "Mon Lien SecretLink",
+          text: "Envoyez-moi un message anonyme ! Votre identité sera révélée dans 4 jours.",
           url: url
         }).catch(() => copySecretLink());
       } else {
@@ -1476,65 +2004,27 @@
       }
     }
 
-    // Page Switching
-    function switchPage(pageId, btnEl) {
-      document.querySelectorAll(".page-section").forEach(p => p.classList.remove("active"));
-      document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-
-      document.getElementById(`page-${pageId}`).classList.add("active");
-      if (btnEl) btnEl.classList.add("active");
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.add("active");
     }
 
-    // Filter switching
-    function setFilter(filter) {
-      currentFilter = filter;
-      document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
-      event.target.classList.add("active");
-      renderMessages();
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove("active");
+      if (id === "modal-detail") selectedMessageId = null;
     }
 
-    // Profile updates
-    function saveProfileChanges() {
-      const newName = document.getElementById("input-edit-username").value.trim();
-      const newBio = document.getElementById("input-edit-bio").value.trim();
-
-      if (!newName) {
-        alert("Le nom d'utilisateur ne peut pas être vide.");
-        return;
-      }
-
-      user.username = newName;
-      user.bio = newBio;
-      saveUser();
-      renderUI();
-      showToast("Profil mis à jour avec succès !");
-    }
-
-    function revokeOtherSessions() {
-      sessions = sessions.filter(s => s.isCurrent);
-      saveSessions();
-      renderSessions();
-      showToast("Toutes les autres sessions ont été révoquées.");
-    }
-
-    function resetAppData() {
-      if (confirm("Réinitialiser toutes les données de test ?")) {
-        localStorage.clear();
-        location.reload();
-      }
-    }
-
-    function showToast(msg) {
+    function showToast(text) {
       const toast = document.getElementById("toast");
-      document.getElementById("toast-text").textContent = msg;
+      document.getElementById("toast-text").textContent = text;
       toast.style.display = "flex";
       setTimeout(() => {
         toast.style.display = "none";
-      }, 3200);
+      }, 2600);
     }
 
-    // Boot
+    // Start App
     window.addEventListener("DOMContentLoaded", initApp);
   </script>
 </body>
