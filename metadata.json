@@ -1,0 +1,6 @@
+{
+  "name": "Messages Anonymes",
+  "description": "Plateforme de messagerie anonyme sécurisée avec liens personnalisés, suivi des sessions et compte à rebours de 4 jours avant révélation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

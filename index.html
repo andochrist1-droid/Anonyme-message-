@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecretLink - Messages Anonymes & Protocole 4 Jours</title>
+  <meta name="description" content="Plateforme de messages anonymes avec révélation différée de l'identité après 4 jours de compte à rebours sécurisé." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #F8FAFF;
+      --surface-color: #FFFFFF;
+      --surface-variant: #F0F4F9;
+      --primary: #005FAF;
+      --primary-dark: #004582;
+      --primary-container: #D1E4FF;
+      --on-primary-container: #001D36;
+      --text-primary: #1A1C1E;
+      --text-secondary: #44474E;
+      --text-muted: #74777F;
+      --border: #DDE3EA;
+      --success-bg: #ECFDF5;
+      --success-border: #A7F3D0;
+      --success-text: #065F46;
+      --error-bg: #FEE2E2;
+      --error-border: #FECACA;
+      --error-text: #BA1A1A;
+      --radius-sm: 12px;
+      --radius-md: 18px;
+      --radius-lg: 28px;
+      --shadow-sm: 0 2px 8px rgba(0, 30, 60, 0.04);
+      --shadow-md: 0 8px 24px rgba(0, 30, 60, 0.08);
+      --transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-bottom: 90px;
+    }
+
+    /* App Container */
+    .app-container {
+      width: 100%;
+      max-width: 520px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Top App Bar */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 4px;
+      margin-top: 6px;
+    }
+    .top-bar .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .top-bar .logo-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 800;
+      font-size: 18px;
+      box-shadow: 0 4px 12px rgba(0, 95, 175, 0.25);
+    }
+    .top-bar h1 {
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text-primary);
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .status-pill-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10B981;
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+    }
+
+    /* Bento Cards Common */
+    .bento-card {
+      background: var(--surface-color);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .bento-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    .micro-header {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    /* Profile Header Card */
+    .profile-hero {
+      background: linear-gradient(135deg, #004582 0%, #005FAF 50%, #1565C0 100%);
+      color: white;
+      border: none;
+      padding: 22px;
+    }
+    .profile-hero .micro-header {
+      color: var(--primary-container);
+    }
+    .profile-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .avatar-wrapper {
+      position: relative;
+    }
+    .avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: white;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      font-weight: 800;
+      border: 2px solid rgba(255, 255, 255, 0.85);
+      object-fit: cover;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    }
+    .profile-info h2 {
+      font-size: 18px;
+      font-weight: 800;
+    }
+    .profile-info p {
+      font-size: 12px;
+      color: var(--primary-container);
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+
+    /* Secret Link Box */
+    .link-display-box {
+      background: #F8FAFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .link-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-right: 10px;
+    }
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--primary-container);
+      color: var(--primary);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: var(--transition);
+    }
+    .icon-btn:hover {
+      background: #bddaff;
+      transform: scale(1.05);
+    }
+
+    /* Bento Dual Grid */
+    .bento-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .bento-tile {
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      min-height: 135px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+    .bento-tile.pastel {
+      background: var(--primary-container);
+      border: 1px solid var(--border);
+      color: var(--on-primary-container);
+    }
+    .bento-tile.deep-blue {
+      background: var(--primary);
+      color: white;
+      border: 1px solid var(--primary-dark);
+    }
+    .bento-tile .tile-metric {
+      font-size: 32px;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      line-height: 1;
+    }
+    .bento-tile .tile-title {
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .bento-tile .tile-sub {
+      font-size: 11px;
+      opacity: 0.85;
+      font-weight: 600;
+    }
+
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+    }
+    .btn {
+      flex: 1;
+      height: 48px;
+      border-radius: var(--radius-md);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: var(--transition);
+      border: none;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      box-shadow: 0 4px 12px rgba(0, 95, 175, 0.25);
+    }
+    .btn-outlined {
+      background: transparent;
+      color: var(--primary);
+      border: 1.5px solid var(--primary);
+    }
+    .btn-outlined:hover {
+      background: var(--primary-container);
+    }
+    .btn-danger {
+      background: var(--error-bg);
+      color: var(--error-text);
+      border: 1px solid var(--error-border);
+    }
+
+    /* Bento Protocol Steps */
+    .step-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      background: var(--surface-color);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      margin-bottom: 10px;
+    }
+    .step-num {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--primary-container);
+      color: var(--primary);
+      font-weight: 800;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-info h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .step-info p {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+      line-height: 1.35;
+    }
+
+    /* Filter Chips */
+    .filter-chips {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .filter-chips::-webkit-scrollbar {
+      display: none;
+    }
+    .chip {
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      background: var(--surface-color);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: var(--transition);
+    }
+    .chip.active {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      border-color: var(--primary);
+    }
+
+    /* Message Item Card */
+    .message-card {
+      background: var(--surface-color);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .message-card.unread {
+      border-color: var(--primary);
+      background: #FAFDFE;
+    }
+    .message-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+    .msg-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .tag-badge {
+      background: var(--primary-container);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .msg-date {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .msg-content {
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text-primary);
+      word-break: break-word;
+    }
+
+    /* Countdown Pill in Bento card */
+    .countdown-pill {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      background: #F8FAFF;
+      border: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .countdown-pill.unlocked {
+      background: var(--success-bg);
+      border-color: var(--success-border);
+      color: var(--success-text);
+    }
+    .countdown-timer {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--primary);
+      font-weight: 800;
+    }
+    .countdown-pill.unlocked .countdown-timer {
+      color: var(--success-text);
+    }
+
+    /* Modal Sheet */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 29, 54, 0.45);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-window {
+      background: var(--surface-color);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 24px;
+      box-shadow: 0 16px 40px rgba(0, 30, 60, 0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      animation: modalSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalSlide {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Form Inputs */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .form-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .form-input, .form-textarea, .form-select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      border: 1.5px solid var(--border);
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text-primary);
+      background: #F8FAFF;
+      transition: var(--transition);
+      outline: none;
+    }
+    .form-input:focus, .form-textarea:focus, .form-select:focus {
+      border-color: var(--primary);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(0, 95, 175, 0.12);
+    }
+    .form-textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    /* Bottom Navigation Bar */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface-color);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: center;
+      z-index: 500;
+      box-shadow: 0 -4px 16px rgba(0, 30, 60, 0.05);
+    }
+    .bottom-nav-inner {
+      width: 100%;
+      max-width: 520px;
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 12px;
+    }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      transition: var(--transition);
+      position: relative;
+    }
+    .nav-item.active {
+      color: var(--primary);
+      background: var(--primary-container);
+    }
+    .nav-item svg {
+      width: 22px;
+      height: 22px;
+      stroke-width: 2;
+    }
+    .nav-item span {
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .badge-counter {
+      position: absolute;
+      top: 4px;
+      right: 8px;
+      background: #BA1A1A;
+      color: white;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 5px;
+      border-radius: 10px;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      top: 20px;
+      background: #001D36;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      animation: fadeIn 0.2s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Pages Container */
+    .page-section {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .page-section.active {
+      display: flex;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Progress bar */
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #E1E2E9;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    /* Sensitive data box */
+    .sensitive-box {
+      background: #F8FAFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+    .detail-label {
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .detail-val {
+      color: var(--text-primary);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Toast Notification Box -->
+  <div id="toast" class="toast">
+    <span id="toast-text">Lien copié dans le presse-papiers !</span>
+  </div>
+
+  <div class="app-container">
+    <!-- Top App Bar -->
+    <header class="top-bar">
+      <div class="brand">
+        <div class="logo-badge">S</div>
+        <div>
+          <h1>SecretLink</h1>
+          <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Protocole 4 Jours Web Edition</div>
+        </div>
+      </div>
+      <div class="status-pill">
+        <span class="status-pill-dot"></span>
+        <span>ACTIF</span>
+      </div>
+    </header>
+
+    <!-- ============================================== -->
+    <!-- PAGE 1: PARTAGE DE LIEN (DASHBOARD)            -->
+    <!-- ============================================== -->
+    <section id="page-share" class="page-section active">
+      <!-- Profile Header Hero -->
+      <div class="bento-card profile-hero">
+        <div class="profile-row">
+          <div class="avatar-wrapper">
+            <div id="user-avatar" class="avatar">🔒</div>
+          </div>
+          <div class="profile-info">
+            <h2 id="user-display-name">Alexandre</h2>
+            <p id="user-bio">Posez-moi une question ou dites-moi un secret en toute liberté...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Secret Link Box Bento -->
+      <div class="bento-card">
+        <div class="micro-header">
+          <span>Votre Lien Secret</span>
+          <span class="tag-badge" style="background: var(--primary-container); color: var(--on-primary-container);">Privé</span>
+        </div>
+        <div class="link-display-box">
+          <span id="public-link-url" class="link-text">https://secretlink.app/u/alexandre</span>
+          <button class="icon-btn" onclick="copySecretLink()" title="Copier le lien">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+          </button>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="shareSecretLink()">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+            Partager le lien
+          </button>
+          <button class="btn btn-outlined" onclick="openSendAnonymousModal()">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+            Envoyer un message
+          </button>
+        </div>
+      </div>
+
+      <!-- Bento Dual Feature Grid -->
+      <div class="bento-grid-2">
+        <div class="bento-tile pastel">
+          <div class="micro-header" style="color: var(--on-primary-container); margin-bottom: 0;">
+            <span>MESSAGES</span>
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </div>
+          <div id="total-messages-count" class="tile-metric">02</div>
+          <div class="tile-sub">Protocole 4 jours actif</div>
+        </div>
+
+        <div class="bento-tile deep-blue">
+          <div class="micro-header" style="color: var(--primary-container); margin-bottom: 0;">
+            <span>PROTECTION</span>
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+          </div>
+          <div class="tile-title">Données isolées</div>
+          <div class="tile-sub">AES-256 scellé</div>
+        </div>
+      </div>
+
+      <!-- Protocol 3 Steps -->
+      <div>
+        <div class="micro-header">Protocole en 3 étapes</div>
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-info">
+            <h4>Partagez votre lien secret</h4>
+            <p>Diffusez votre URL personnelle sur vos réseaux, stories ou bio.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-info">
+            <h4>Réception chiffrée AES-256</h4>
+            <p>Vous lisez les messages secrets. Les coordonnées restent scellées.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-info">
+            <h4>Compte à rebours de 4 jours</h4>
+            <p>Après 96h, les coordonnées de l'expéditeur sont automatiquement révélées !</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- PAGE 2: BOÎTE DE RÉCEPTION (INBOX)             -->
+    <!-- ============================================== -->
+    <section id="page-inbox" class="page-section">
+      <div class="micro-header">
+        <span>Boîte de Réception</span>
+        <span id="unread-counter-text" class="tag-badge">0 non lus</span>
+      </div>
+
+      <!-- Filter Chips -->
+      <div class="filter-chips">
+        <button class="chip active" onclick="setFilter('all')">Tous</button>
+        <button class="chip" onclick="setFilter('unread')">Non lus</button>
+        <button class="chip" onclick="setFilter('favorites')">Favoris ⭐</button>
+        <button class="chip" onclick="setFilter('unlocked')">Déverrouillés 🔓</button>
+      </div>
+
+      <!-- Message List -->
+      <div id="messages-list" style="display: flex; flex-direction: column; gap: 14px;">
+        <!-- Dynamic message cards rendered via JS -->
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- PAGE 3: SESSIONS & SÉCURITÉ                    -->
+    <!-- ============================================== -->
+    <section id="page-security" class="page-section">
+      <div class="bento-card" style="background: var(--primary-container); border-color: var(--border);">
+        <div class="micro-header" style="color: var(--on-primary-container);">
+          <span>Protection des Sessions</span>
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+        </div>
+        <p style="font-size: 12px; color: var(--on-primary-container); line-height: 1.45;">
+          Chaque connexion à votre compte enregistre l'empreinte de votre navigateur, l'adresse réseau et l'horodatage en stockage local scellé.
+        </p>
+      </div>
+
+      <button class="btn btn-danger" onclick="revokeOtherSessions()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+        Révoquer les autres sessions
+      </button>
+
+      <div class="micro-header">Historique Détaillé des Connexions</div>
+      <div id="sessions-container" style="display: flex; flex-direction: column; gap: 12px;">
+        <!-- Dynamic sessions rendered via JS -->
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- PAGE 4: PARAMÈTRES & PROFIL                    -->
+    <!-- ============================================== -->
+    <section id="page-settings" class="page-section">
+      <div class="bento-card">
+        <div class="micro-header">Profil Utilisateur</div>
+        <div class="profile-row" style="margin-bottom: 16px;">
+          <div class="avatar" id="settings-avatar">🔒</div>
+          <div class="profile-info">
+            <h2 id="settings-username">Alexandre</h2>
+            <p id="settings-email" style="color: var(--text-secondary);">alexandre@exemple.com</p>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nom d'utilisateur</label>
+          <input type="text" id="input-edit-username" class="form-input" value="Alexandre">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Message d'accueil (Bio)</label>
+          <textarea id="input-edit-bio" class="form-textarea">Posez-moi une question ou dites-moi un secret en toute liberté...</textarea>
+        </div>
+        <button class="btn btn-primary" onclick="saveProfileChanges()">Sauvegarder le profil</button>
+      </div>
+
+      <div class="bento-card">
+        <div class="micro-header">Sécurité & Protocole</div>
+        <div class="sensitive-box">
+          <div class="detail-row">
+            <span class="detail-label">Durée de révélation</span>
+            <span class="detail-val">4 Jours (96h)</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Algorithme de chiffrement</span>
+            <span class="detail-val">AES-256 GCM</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Mode d'hébergement</span>
+            <span class="detail-val">GitHub Pages Ready</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-danger" onclick="resetAppData()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+        Réinitialiser les données de démo
+      </button>
+    </section>
+  </div>
+
+  <!-- Bottom Navigation Bar -->
+  <nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+      <button class="nav-item active" onclick="switchPage('share', this)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+        <span>Mon Lien</span>
+      </button>
+      <button class="nav-item" onclick="switchPage('inbox', this)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+        <span>Messages</span>
+        <span id="nav-badge" class="badge-counter" style="display: none;">0</span>
+      </button>
+      <button class="nav-item" onclick="switchPage('security', this)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        <span>Sécurité</span>
+      </button>
+      <button class="nav-item" onclick="switchPage('settings', this)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        <span>Paramètres</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ============================================== -->
+  <!-- MODAL: ENVOYER UN MESSAGE ANONYME (TEST/PUBLIC)-->
+  <!-- ============================================== -->
+  <div id="modal-send" class="modal-overlay">
+    <div class="modal-window">
+      <div class="micro-header">
+        <span>Envoyer un message anonyme</span>
+        <button onclick="closeModal('modal-send')" style="border: none; background: transparent; cursor: pointer; font-size: 18px;">✕</button>
+      </div>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">
+        Votre message restera totalement anonyme pendant 4 jours. À l'échéance des 96 heures, les coordonnées saisies ci-dessous seront déverrouillées.
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">Thématique (Tag)</label>
+        <select id="send-tag" class="form-select">
+          <option value="confession">#Confession</option>
+          <option value="secret">#Secret</option>
+          <option value="question">#Question</option>
+          <option value="compliment">#Compliment</option>
+          <option value="amitie">#Amitié</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Message Anonyme *</label>
+        <textarea id="send-content" class="form-textarea" placeholder="Tapez votre message secret ici..."></textarea>
+      </div>
+
+      <div class="bento-card" style="background: #F8FAFF; padding: 14px; margin-bottom: 4px;">
+        <div class="micro-header" style="color: var(--primary);">
+          <span>Vos Coordonnées (Scellées 4 jours)</span>
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Votre Vrai Nom ou Pseudo</label>
+          <input type="text" id="send-sender-name" class="form-input" placeholder="Ex: Julie D.">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contact (Email / Téléphone / Insta)</label>
+          <input type="text" id="send-sender-contact" class="form-input" placeholder="Ex: @julie ou 06 12 34 56 78">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Indice ou note personnelle</label>
+          <input type="text" id="send-sender-hint" class="form-input" placeholder="Ex: On s'est croisés au café hier...">
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-outlined" onclick="closeModal('modal-send')">Annuler</button>
+        <button class="btn btn-primary" onclick="submitAnonymousMessage()">
+          Envoyer le message
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: DÉTAIL DU MESSAGE & COMPTE À REBOURS    -->
+  <!-- ============================================== -->
+  <div id="modal-detail" class="modal-overlay">
+    <div class="modal-window">
+      <div class="micro-header">
+        <span id="detail-tag" class="tag-badge">#CONFESSION</span>
+        <button onclick="closeModal('modal-detail')" style="border: none; background: transparent; cursor: pointer; font-size: 18px;">✕</button>
+      </div>
+
+      <div class="bento-card" style="background: #F8FAFF; border-radius: var(--radius-md); padding: 16px;">
+        <div style="font-size: 24px; color: var(--primary); margin-bottom: 4px; line-height: 1;">“</div>
+        <p id="detail-content" style="font-size: 15px; font-weight: 600; line-height: 1.5; color: var(--text-primary);">
+          Message content...
+        </p>
+        <div id="detail-date" style="font-size: 11px; color: var(--text-muted); text-align: right; margin-top: 10px;"></div>
+      </div>
+
+      <!-- Bento Countdown Card -->
+      <div id="detail-countdown-card" class="bento-card" style="background: var(--primary-container);">
+        <div class="micro-header" style="color: var(--on-primary-container);">
+          <span id="detail-status-title">Compte à rebours 4 jours</span>
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+        <div id="detail-timer" style="font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 800; color: var(--primary); text-align: center; margin: 4px 0;">
+          3j 23h 59m 45s
+        </div>
+        <div class="progress-bar">
+          <div id="detail-progress-fill" class="progress-fill"></div>
+        </div>
+        <p id="detail-protocol-desc" style="font-size: 11px; color: var(--on-primary-container); text-align: center; opacity: 0.85;">
+          Les coordonnées de l'expéditeur sont scellées. Elles seront dévoilées à 0j 00h 00m 00s.
+        </p>
+      </div>
+
+      <!-- Sender Reveal Details -->
+      <div id="detail-sender-box" class="sensitive-box">
+        <div class="micro-header" style="margin-bottom: 4px;">Identité de l'expéditeur</div>
+        <div class="detail-row">
+          <span class="detail-label">Nom / Pseudo :</span>
+          <span id="detail-sender-name" class="detail-val">••••••••••••</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Contact scellé :</span>
+          <span id="detail-sender-contact" class="detail-val">••••••••••••</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Indice :</span>
+          <span id="detail-sender-hint" class="detail-val">••••••••••••</span>
+        </div>
+      </div>
+
+      <!-- Fast Forward Simulation Action -->
+      <button id="btn-fast-forward" class="btn btn-outlined" onclick="fastForwardCurrentMessage()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+        Avancer de 4 jours (Démo / Révéler)
+      </button>
+
+      <div class="btn-row">
+        <button class="btn btn-danger" onclick="deleteCurrentMessage()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+          Supprimer
+        </button>
+        <button class="btn btn-primary" onclick="closeModal('modal-detail')">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT APPLICATION ENGINE -->
+  <script>
+    // 4 Days in Milliseconds: 4 * 24 * 60 * 60 * 1000 = 345,600,000 ms
+    const PROTOCOL_DURATION_MS = 4 * 24 * 60 * 60 * 1000;
+
+    // Local Storage Keys
+    const STORAGE_KEY_USER = "secretlink_user";
+    const STORAGE_KEY_MSGS = "secretlink_messages";
+    const STORAGE_KEY_SESSIONS = "secretlink_sessions";
+
+    // Application State
+    let user = {
+      username: "Alexandre",
+      email: "alexandre@secretlink.app",
+      bio: "Posez-moi une question ou dites-moi un secret en toute liberté...",
+      avatar: "🔒"
+    };
+
+    let messages = [];
+    let sessions = [];
+    let currentFilter = "all";
+    let selectedMessageId = null;
+
+    // Initialize Demo Data if empty
+    function initApp() {
+      const storedUser = localStorage.getItem(STORAGE_KEY_USER);
+      if (storedUser) {
+        try { user = JSON.parse(storedUser); } catch(e) {}
+      }
+
+      const storedMsgs = localStorage.getItem(STORAGE_KEY_MSGS);
+      if (storedMsgs) {
+        try { messages = JSON.parse(storedMsgs); } catch(e) {}
+      } else {
+        // Seed 2 default demo messages
+        const now = Date.now();
+        messages = [
+          {
+            id: "msg_1",
+            tag: "confession",
+            content: "J'ai toujours adoré ton énergie positive et ton sens de l'humour en cours ! J'espère qu'on aura l'occasion d'échanger plus souvent.",
+            senderName: "Camille R.",
+            senderContact: "@camille.r sur Instagram",
+            senderHint: "On était dans le même groupe de projet en début d'année",
+            receivedAt: now - (2 * 24 * 60 * 60 * 1000), // 2 days ago (2 days remaining)
+            isRead: false,
+            isFavorite: true
+          },
+          {
+            id: "msg_2",
+            tag: "secret",
+            content: "Félicitations pour ton nouveau projet ! Tu mérites vraiment tout ce succès.",
+            senderName: "Thomas M.",
+            senderContact: "thomas.m@gmail.com",
+            senderHint: "Ton voisin de bureau d'à côté",
+            receivedAt: now - (4 * 24 * 60 * 60 * 1000 + 10000), // 4 days ago + 10s (Unlocked!)
+            isRead: true,
+            isFavorite: false
+          }
+        ];
+        saveMessages();
+      }
+
+      const storedSessions = localStorage.getItem(STORAGE_KEY_SESSIONS);
+      if (storedSessions) {
+        try { sessions = JSON.parse(storedSessions); } catch(e) {}
+      } else {
+        const now = Date.now();
+        sessions = [
+          {
+            id: "sess_curr",
+            deviceInfo: navigator.userAgent.includes("Mobile") ? "Smartphone Web" : "Ordinateur de bureau",
+            ipAddress: "192.168.1.42 (Réseau Local)",
+            loginTime: now,
+            isActive: true,
+            isCurrent: true
+          },
+          {
+            id: "sess_prev",
+            deviceInfo: "Chrome sur Android 14",
+            ipAddress: "86.214.102.19 (Wi-Fi Sécurisé)",
+            loginTime: now - (3 * 24 * 60 * 60 * 1000),
+            isActive: true,
+            isCurrent: false
+          }
+        ];
+        saveSessions();
+      }
+
+      // Check if URL has ?to= query parameter for visitors
+      const urlParams = new URLSearchParams(window.location.search);
+      const recipient = urlParams.get('to');
+      if (recipient) {
+        showToast("Vous envoyez un message secret à @" + recipient);
+        openSendAnonymousModal();
+      }
+
+      renderUI();
+      // Start Countdown Ticker every second
+      setInterval(tickCountdown, 1000);
+    }
+
+    function saveUser() {
+      localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
+    }
+    function saveMessages() {
+      localStorage.setItem(STORAGE_KEY_MSGS, JSON.stringify(messages));
+    }
+    function saveSessions() {
+      localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(sessions));
+    }
+
+    // Render Full UI
+    function renderUI() {
+      // Header & Profile Card
+      document.getElementById("user-display-name").textContent = user.username;
+      document.getElementById("user-bio").textContent = user.bio;
+      document.getElementById("settings-username").textContent = user.username;
+      document.getElementById("settings-email").textContent = user.email;
+      document.getElementById("input-edit-username").value = user.username;
+      document.getElementById("input-edit-bio").value = user.bio;
+
+      // Public Link URL
+      const host = window.location.origin + window.location.pathname;
+      const shareUrl = `${host}?to=${encodeURIComponent(user.username.toLowerCase().replace(/\\s+/g, ''))}`;
+      document.getElementById("public-link-url").textContent = shareUrl;
+
+      // Metrics
+      const totalCount = messages.length;
+      document.getElementById("total-messages-count").textContent = totalCount < 10 ? "0" + totalCount : totalCount;
+
+      const unreadCount = messages.filter(m => !m.isRead).length;
+      document.getElementById("unread-counter-text").textContent = `${unreadCount} non lus`;
+      const badge = document.getElementById("nav-badge");
+      if (unreadCount > 0) {
+        badge.style.display = "block";
+        badge.textContent = unreadCount;
+      } else {
+        badge.style.display = "none";
+      }
+
+      renderMessages();
+      renderSessions();
+    }
+
+    // Render Messages List
+    function renderMessages() {
+      const container = document.getElementById("messages-list");
+      container.innerHTML = "";
+
+      let filtered = messages;
+      if (currentFilter === "unread") {
+        filtered = messages.filter(m => !m.isRead);
+      } else if (currentFilter === "favorites") {
+        filtered = messages.filter(m => m.isFavorite);
+      } else if (currentFilter === "unlocked") {
+        filtered = messages.filter(m => isMessageUnlocked(m));
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--text-muted);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+            <div style="font-weight: 700;">Aucun message trouvé</div>
+            <div style="font-size: 12px;">Partagez votre lien secret pour en recevoir !</div>
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(msg => {
+        const unlocked = isMessageUnlocked(msg);
+        const remaining = getRemainingTime(msg);
+        const card = document.createElement("div");
+        card.className = `message-card ${!msg.isRead ? 'unread' : ''}`;
+        card.onclick = () => openMessageDetail(msg.id);
+
+        card.innerHTML = `
+          <div class="msg-top">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="tag-badge">#${msg.tag.toUpperCase()}</span>
+              ${!msg.isRead ? '<span style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary);"></span>' : ''}
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="msg-date">${formatDate(msg.receivedAt)}</span>
+              <span onclick="toggleFavorite(event, '${msg.id}')" style="cursor: pointer; font-size: 16px;">
+                ${msg.isFavorite ? '⭐' : '☆'}
+              </span>
+            </div>
+          </div>
+          <div class="msg-content">${escapeHtml(msg.content)}</div>
+          <div class="countdown-pill ${unlocked ? 'unlocked' : ''}">
+            <span>${unlocked ? '🔓 Identité déverrouillée' : '⏳ Compte à rebours :'}</span>
+            <span class="countdown-timer" id="timer-${msg.id}">
+              ${unlocked ? 'Révélé !' : formatCountdown(remaining)}
+            </span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Render Sessions
+    function renderSessions() {
+      const container = document.getElementById("sessions-container");
+      container.innerHTML = "";
+
+      sessions.forEach(sess => {
+        const card = document.createElement("div");
+        card.className = "bento-card";
+        card.style.padding = "16px";
+
+        card.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary-container); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 800;">
+                💻
+              </div>
+              <div>
+                <div style="font-size: 13px; font-weight: 700;">${sess.deviceInfo}</div>
+                <div style="font-size: 11px; color: var(--text-muted);">${formatDate(sess.loginTime)}</div>
+              </div>
+            </div>
+            <span class="tag-badge" style="background: ${sess.isCurrent ? '#ECFDF5' : '#F1F5F9'}; color: ${sess.isCurrent ? '#065F46' : 'var(--text-secondary)'};">
+              ${sess.isCurrent ? 'Actuelle' : (sess.isActive ? 'Connectée' : 'Révoquée')}
+            </span>
+          </div>
+          <div class="sensitive-box" style="margin-top: 8px;">
+            <div class="detail-row">
+              <span class="detail-label">Adresse IP :</span>
+              <span class="detail-val">${sess.ipAddress}</span>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Helpers
+    function isMessageUnlocked(msg) {
+      return (Date.now() - msg.receivedAt) >= PROTOCOL_DURATION_MS;
+    }
+
+    function getRemainingTime(msg) {
+      const diff = (msg.receivedAt + PROTOCOL_DURATION_MS) - Date.now();
+      return diff > 0 ? diff : 0;
+    }
+
+    function formatCountdown(ms) {
+      if (ms <= 0) return "0j 00h 00m 00s";
+      const totalSeconds = Math.floor(ms / 1000);
+      const days = Math.floor(totalSeconds / (3600 * 24));
+      const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      return `${days}j ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+    }
+
+    function formatDate(ts) {
+      const d = new Date(ts);
+      return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    // Periodic Countdown Timer Update
+    function tickCountdown() {
+      messages.forEach(msg => {
+        const el = document.getElementById(`timer-${msg.id}`);
+        if (el) {
+          if (isMessageUnlocked(msg)) {
+            el.textContent = "Révélé !";
+            el.parentElement.classList.add("unlocked");
+          } else {
+            el.textContent = formatCountdown(getRemainingTime(msg));
+          }
+        }
+      });
+
+      // Also update open modal if any
+      if (selectedMessageId) {
+        const msg = messages.find(m => m.id === selectedMessageId);
+        if (msg) {
+          updateModalDetailCountdown(msg);
+        }
+      }
+    }
+
+    function updateModalDetailCountdown(msg) {
+      const unlocked = isMessageUnlocked(msg);
+      const remaining = getRemainingTime(msg);
+      const timerEl = document.getElementById("detail-timer");
+      const statusTitle = document.getElementById("detail-status-title");
+      const card = document.getElementById("detail-countdown-card");
+      const progressFill = document.getElementById("detail-progress-fill");
+      const fastForwardBtn = document.getElementById("btn-fast-forward");
+
+      if (unlocked) {
+        statusTitle.textContent = "Identité déverrouillée (4 jours écoulés)";
+        timerEl.textContent = "DÉVERROUILLÉ 🔓";
+        timerEl.style.color = "var(--success-text)";
+        card.style.background = "var(--success-bg)";
+        progressFill.style.width = "100%";
+        progressFill.style.background = "var(--success-text)";
+        fastForwardBtn.style.display = "none";
+
+        // Show Real Identity
+        document.getElementById("detail-sender-name").textContent = msg.senderName || "Anonyme";
+        document.getElementById("detail-sender-contact").textContent = msg.senderContact || "Non communiqué";
+        document.getElementById("detail-sender-hint").textContent = msg.senderHint || "Aucun indice";
+        document.getElementById("detail-protocol-desc").textContent = "Les coordonnées ont été déchiffrées automatiquement.";
+      } else {
+        statusTitle.textContent = "Compte à rebours 4 jours";
+        timerEl.textContent = formatCountdown(remaining);
+        timerEl.style.color = "var(--primary)";
+        card.style.background = "var(--primary-container)";
+        const progress = Math.min(100, Math.max(0, ((PROTOCOL_DURATION_MS - remaining) / PROTOCOL_DURATION_MS) * 100));
+        progressFill.style.width = `${progress}%`;
+        progressFill.style.background = "var(--primary)";
+        fastForwardBtn.style.display = "flex";
+
+        // Obfuscate Identity
+        document.getElementById("detail-sender-name").textContent = "•••••••••••• (Scellé)";
+        document.getElementById("detail-sender-contact").textContent = "•••••••••••• (Scellé)";
+        document.getElementById("detail-sender-hint").textContent = msg.senderHint || "••••••••••••";
+        document.getElementById("detail-protocol-desc").textContent = "Les coordonnées de l'expéditeur sont scellées. Elles seront dévoilées à 0j 00h 00m 00s.";
+      }
+    }
+
+    // Modal Operations
+    function openMessageDetail(msgId) {
+      selectedMessageId = msgId;
+      const msg = messages.find(m => m.id === msgId);
+      if (!msg) return;
+
+      if (!msg.isRead) {
+        msg.isRead = true;
+        saveMessages();
+        renderUI();
+      }
+
+      document.getElementById("detail-tag").textContent = `#${msg.tag.toUpperCase()}`;
+      document.getElementById("detail-content").textContent = msg.content;
+      document.getElementById("detail-date").textContent = `Reçu le ${formatDate(msg.receivedAt)}`;
+
+      updateModalDetailCountdown(msg);
+      document.getElementById("modal-detail").classList.add("active");
+    }
+
+    function fastForwardCurrentMessage() {
+      if (!selectedMessageId) return;
+      const msg = messages.find(m => m.id === selectedMessageId);
+      if (msg) {
+        // Fast-forward back in time by 4 days
+        msg.receivedAt = Date.now() - (PROTOCOL_DURATION_MS + 1000);
+        saveMessages();
+        updateModalDetailCountdown(msg);
+        renderMessages();
+        showToast("Compte à rebours de 4 jours terminé ! Coordonnées révélées.");
+      }
+    }
+
+    function deleteCurrentMessage() {
+      if (!selectedMessageId) return;
+      if (confirm("Voulez-vous supprimer ce message ?")) {
+        messages = messages.filter(m => m.id !== selectedMessageId);
+        saveMessages();
+        closeModal("modal-detail");
+        renderUI();
+        showToast("Message supprimé.");
+      }
+    }
+
+    function toggleFavorite(event, msgId) {
+      event.stopPropagation();
+      const msg = messages.find(m => m.id === msgId);
+      if (msg) {
+        msg.isFavorite = !msg.isFavorite;
+        saveMessages();
+        renderMessages();
+      }
+    }
+
+    function openSendAnonymousModal() {
+      document.getElementById("send-content").value = "";
+      document.getElementById("send-sender-name").value = "";
+      document.getElementById("send-sender-contact").value = "";
+      document.getElementById("send-sender-hint").value = "";
+      document.getElementById("modal-send").classList.add("active");
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove("active");
+      if (modalId === "modal-detail") {
+        selectedMessageId = null;
+      }
+    }
+
+    function submitAnonymousMessage() {
+      const content = document.getElementById("send-content").value.trim();
+      const tag = document.getElementById("send-tag").value;
+      const name = document.getElementById("send-sender-name").value.trim() || "Ami(e) secret";
+      const contact = document.getElementById("send-sender-contact").value.trim() || "Non spécifié";
+      const hint = document.getElementById("send-sender-hint").value.trim() || "Un proche qui pense à toi";
+
+      if (!content) {
+        alert("Veuillez saisir votre message anonyme.");
+        return;
+      }
+
+      const newMsg = {
+        id: "msg_" + Date.now(),
+        tag: tag,
+        content: content,
+        senderName: name,
+        senderContact: contact,
+        senderHint: hint,
+        receivedAt: Date.now(),
+        isRead: false,
+        isFavorite: false
+      };
+
+      messages.unshift(newMsg);
+      saveMessages();
+      closeModal("modal-send");
+      renderUI();
+      showToast("Message secret envoyé avec protocole 4 jours !");
+    }
+
+    // Clipboard & Web Share
+    function copySecretLink() {
+      const url = document.getElementById("public-link-url").textContent;
+      navigator.clipboard.writeText(url).then(() => {
+        showToast("Lien secret copié dans le presse-papiers !");
+      }).catch(() => {
+        showToast("Lien : " + url);
+      });
+    }
+
+    function shareSecretLink() {
+      const url = document.getElementById("public-link-url").textContent;
+      if (navigator.share) {
+        navigator.share({
+          title: `Lien secret de ${user.username}`,
+          text: `Envoie-moi un message anonyme ! Les coordonnées se révèlent dans 4 jours.`,
+          url: url
+        }).catch(() => copySecretLink());
+      } else {
+        copySecretLink();
+      }
+    }
+
+    // Page Switching
+    function switchPage(pageId, btnEl) {
+      document.querySelectorAll(".page-section").forEach(p => p.classList.remove("active"));
+      document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+
+      document.getElementById(`page-${pageId}`).classList.add("active");
+      if (btnEl) btnEl.classList.add("active");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Filter switching
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+      event.target.classList.add("active");
+      renderMessages();
+    }
+
+    // Profile updates
+    function saveProfileChanges() {
+      const newName = document.getElementById("input-edit-username").value.trim();
+      const newBio = document.getElementById("input-edit-bio").value.trim();
+
+      if (!newName) {
+        alert("Le nom d'utilisateur ne peut pas être vide.");
+        return;
+      }
+
+      user.username = newName;
+      user.bio = newBio;
+      saveUser();
+      renderUI();
+      showToast("Profil mis à jour avec succès !");
+    }
+
+    function revokeOtherSessions() {
+      sessions = sessions.filter(s => s.isCurrent);
+      saveSessions();
+      renderSessions();
+      showToast("Toutes les autres sessions ont été révoquées.");
+    }
+
+    function resetAppData() {
+      if (confirm("Réinitialiser toutes les données de test ?")) {
+        localStorage.clear();
+        location.reload();
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      document.getElementById("toast-text").textContent = msg;
+      toast.style.display = "flex";
+      setTimeout(() => {
+        toast.style.display = "none";
+      }, 3200);
+    }
+
+    // Boot
+    window.addEventListener("DOMContentLoaded", initApp);
+  </script>
+</body>
+</html>
