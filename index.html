@@ -1286,9 +1286,15 @@
       // Clean up any legacy demo user from previous demo version
       cleanupLegacyDemo();
 
-      // Check if URL has ?to= query parameter for visitors
+      // Check if URL has ?to= query parameter for visitors -> Redirect to dedicated send.html page
       const urlParams = new URLSearchParams(window.location.search);
-      const recipientSlug = urlParams.get('to');
+      const recipientSlug = urlParams.get('to') || urlParams.get('u');
+
+      if (recipientSlug) {
+        // Automatically redirect to the dedicated platform send.html
+        window.location.replace(`send.html?to=${encodeURIComponent(recipientSlug)}`);
+        return;
+      }
 
       const storedLoggedUser = localStorage.getItem(STORAGE_KEY_CURRENT_USER);
       if (storedLoggedUser) {
@@ -1610,9 +1616,10 @@
       document.getElementById("input-edit-username").value = currentUser.username;
       document.getElementById("input-edit-bio").value = currentUser.bio;
 
-      // Public Link URL
-      const host = window.location.origin + window.location.pathname;
-      const shareUrl = `${host}?to=${encodeURIComponent(currentUser.username.toLowerCase())}`;
+      // Public Link URL - points to the dedicated send.html platform for this pseudonym
+      const basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+      const host = window.location.origin + basePath;
+      const shareUrl = `${host}send.html?to=${encodeURIComponent(currentUser.username.toLowerCase())}`;
       document.getElementById("public-link-url").textContent = shareUrl;
 
       // Metrics

@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,8 +27,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Share
@@ -86,7 +89,7 @@ fun ShareLinkScreen(
     onClearSimulatedNotice: () -> Unit
 ) {
     val context = LocalContext.current
-    val publicUrl = "https://anonym.link/u/${user.uniqueLinkSlug}"
+    val publicUrl = "https://secretlink.app/send.html?to=${user.uniqueLinkSlug}"
     var showSimulateDialog by remember { mutableStateOf(false) }
 
     Column(
@@ -280,7 +283,7 @@ fun ShareLinkScreen(
                                 type = "text/plain"
                                 putExtra(
                                     Intent.EXTRA_TEXT,
-                                    "Écris-moi un message anonyme ! Ses coordonnées restent secrètes pendant 4 jours : $publicUrl"
+                                    "Écris-moi un message anonyme, pose-moi une question ou fais une confession ! Mes coordonnées restent secrètes 4 jours : $publicUrl"
                                 )
                             }
                             context.startActivity(Intent.createChooser(shareIntent, "Partager mon lien anonyme"))
@@ -298,19 +301,46 @@ fun ShareLinkScreen(
                     }
 
                     OutlinedButton(
-                        onClick = { showSimulateDialog = true },
+                        onClick = {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(publicUrl))
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText("Lien anonyme", publicUrl)
+                                clipboard.setPrimaryClip(clip)
+                                Toast.makeText(context, "Lien copié : $publicUrl", Toast.LENGTH_SHORT).show()
+                            }
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp)
-                            .testTag("simulate_message_button"),
+                            .testTag("open_web_link_button"),
                         shape = RoundedCornerShape(18.dp),
                         border = androidx.compose.foundation.BorderStroke(1.5.dp, BluePrimary),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = BluePrimary)
                     ) {
-                        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = BluePrimary, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.OpenInBrowser, contentDescription = null, tint = BluePrimary, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Simuler", fontWeight = FontWeight.Bold)
+                        Text("Ouvrir page", fontWeight = FontWeight.Bold)
                     }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedButton(
+                    onClick = { showSimulateDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .testTag("simulate_message_button"),
+                    shape = RoundedCornerShape(16.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SlateBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = SlateTextSecondary)
+                ) {
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = BluePrimary, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Tester l'envoi en direct (Simulation)", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }

@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Envoyer un message secret | SecretLink</title>
+  <meta name="description" content="Plateforme de messages anonymes. Posez une question, faites une confession ou partagez un secret en toute liberté. Vos coordonnées restent scellées 4 jours." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #F8FAFF;
+      --surface-color: #FFFFFF;
+      --surface-variant: #F0F4F9;
+      --primary: #005FAF;
+      --primary-dark: #004582;
+      --primary-container: #D1E4FF;
+      --on-primary-container: #001D36;
+      --text-primary: #1A1C1E;
+      --text-secondary: #44474E;
+      --text-muted: #74777F;
+      --border: #DDE3EA;
+      --success-bg: #ECFDF5;
+      --success-border: #A7F3D0;
+      --success-text: #065F46;
+      --error-bg: #FEE2E2;
+      --error-border: #FECACA;
+      --error-text: #BA1A1A;
+      --radius-sm: 12px;
+      --radius-md: 18px;
+      --radius-lg: 28px;
+      --shadow-sm: 0 2px 8px rgba(0, 30, 60, 0.04);
+      --shadow-md: 0 8px 24px rgba(0, 30, 60, 0.08);
+      --transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 16px 60px 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Top Branding Bar */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 4px;
+    }
+    .brand-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--primary-dark);
+      text-decoration: none;
+    }
+    .brand-badge {
+      font-size: 11px;
+      font-weight: 800;
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Bento Cards */
+    .bento-card {
+      background: var(--surface-color);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      padding: 22px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transition: var(--transition);
+    }
+
+    /* Recipient Profile Hero */
+    .profile-hero {
+      background: linear-gradient(135deg, #004582 0%, #005FAF 60%, #1565C0 100%);
+      color: white;
+      border: none;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0, 95, 175, 0.25);
+    }
+    .profile-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .avatar-circle {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    }
+    .profile-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .recipient-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #D1E4FF;
+      margin-bottom: 2px;
+    }
+    .recipient-name {
+      font-size: 22px;
+      font-weight: 800;
+      color: white;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .recipient-bio {
+      font-size: 12.5px;
+      color: rgba(255, 255, 255, 0.88);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    .micro-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--primary);
+    }
+
+    /* Message Type Selector (Confession, Question, Secret, etc.) */
+    .type-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    @media (min-width: 440px) {
+      .type-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+    .type-btn {
+      padding: 10px 8px;
+      border-radius: var(--radius-md);
+      border: 1.5px solid var(--border);
+      background: #F8FAFF;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: var(--transition);
+    }
+    .type-btn .emoji {
+      font-size: 18px;
+    }
+    .type-btn:hover {
+      border-color: var(--primary);
+      background: #F0F6FF;
+    }
+    .type-btn.active {
+      border-color: var(--primary);
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Form Fields */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+    }
+    .form-label .optional {
+      font-weight: 500;
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+    .form-input, .form-textarea {
+      width: 100%;
+      padding: 13px 14px;
+      border-radius: var(--radius-md);
+      border: 1.5px solid var(--border);
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text-primary);
+      background: #F8FAFF;
+      transition: var(--transition);
+      outline: none;
+    }
+    .form-input:focus, .form-textarea:focus {
+      border-color: var(--primary);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(0, 95, 175, 0.12);
+    }
+    .form-textarea {
+      min-height: 110px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    /* Sealed Identity Box */
+    .sealed-box {
+      background: #F8FAFF;
+      border: 1.5px dashed var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .sealed-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .sealed-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 20px;
+      border-radius: var(--radius-md);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: var(--transition);
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 14px rgba(0, 95, 175, 0.25);
+    }
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+    .btn-outlined {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--text-primary);
+    }
+    .btn-outlined:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: #F0F6FF;
+    }
+
+    /* Bento 2 Columns Info */
+    .bento-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .info-tile {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .info-tile .icon {
+      font-size: 20px;
+      margin-bottom: 2px;
+    }
+    .info-tile .title {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+    .info-tile .sub {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.35;
+    }
+
+    /* Success Card View */
+    .success-card {
+      display: none;
+      text-align: center;
+      padding: 36px 20px;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .success-circle {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--success-bg);
+      border: 2px solid var(--success-border);
+      color: var(--success-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 20px;
+      background: #001D36;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">
+    <span id="toast-text">Message transmis</span>
+  </div>
+
+  <div class="container">
+    <!-- Top Branding -->
+    <header class="top-bar">
+      <a href="index.html" class="brand-logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <span>SecretLink</span>
+      </a>
+      <div class="brand-badge">
+        <span>🔒 96H SCIELLÉ</span>
+      </div>
+    </header>
+
+    <!-- Recipient Profile Hero -->
+    <section class="bento-card profile-hero">
+      <div class="profile-row">
+        <div class="avatar-circle" id="recipient-avatar">💬</div>
+        <div class="profile-info">
+          <span class="recipient-tag">Lien Personnel Dédié</span>
+          <h1 class="recipient-name" id="recipient-display-name">@utilisateur</h1>
+          <p class="recipient-bio" id="recipient-bio">
+            Posez-moi une question anonyme, faites-moi une confession ou dites-moi un secret en toute liberté !
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Send Form Section -->
+    <main id="send-form-card" class="bento-card">
+      <div class="micro-header">
+        <span>Envoyer un message secret</span>
+        <span style="color: var(--text-muted); font-size: 10px;">Scellé 4 jours</span>
+      </div>
+
+      <!-- Quick Category Buttons -->
+      <div class="form-group">
+        <label class="form-label">
+          <span>Type de message</span>
+          <span class="optional">Sélectionnez une catégorie</span>
+        </label>
+        <div class="type-grid">
+          <button type="button" class="type-btn active" onclick="selectType('confession', 'Confession', this)">
+            <span class="emoji">🤫</span>
+            <span>Confession</span>
+          </button>
+          <button type="button" class="type-btn" onclick="selectType('question', 'Question', this)">
+            <span class="emoji">❓</span>
+            <span>Question</span>
+          </button>
+          <button type="button" class="type-btn" onclick="selectType('secret', 'Secret', this)">
+            <span class="emoji">🗝️</span>
+            <span>Secret</span>
+          </button>
+          <button type="button" class="type-btn" onclick="selectType('compliment', 'Compliment', this)">
+            <span class="emoji">💖</span>
+            <span>Compliment</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Message Content -->
+      <div class="form-group">
+        <label class="form-label" id="label-message-text">
+          <span>Votre confession secrète *</span>
+          <span class="optional" id="char-counter">0/500</span>
+        </label>
+        <textarea
+          id="input-message-text"
+          class="form-textarea"
+          placeholder="Écrivez votre message secret ici... Le destinataire pourra le lire immédiatement en toute confidentialité."
+          maxlength="500"
+          oninput="updateCharCount()"
+        ></textarea>
+      </div>
+
+      <!-- Sealed Sender Identity (Revealed in 4 days) -->
+      <div class="sealed-box">
+        <div class="sealed-header">
+          <span>Vos Coordonnées (Scellées 4 jours)</span>
+          <span>⏳ 96h</span>
+        </div>
+        <p class="sealed-desc">
+          Ces informations restent strictement inaccessibles et protégées par compte à rebours. Elles ne seront révélées au destinataire que dans <strong>exactement 4 jours (96h)</strong>.
+        </p>
+
+        <div class="form-group">
+          <label class="form-label">
+            <span>Votre prénom ou pseudonyme réel</span>
+            <span class="optional">Optionnel</span>
+          </label>
+          <input
+            type="text"
+            id="input-sender-name"
+            class="form-input"
+            placeholder="Ex: Alexandre, Julie, ton voisin..."
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            <span>Coordonnées de contact (Instagram, Email, N°...)</span>
+            <span class="optional">Optionnel</span>
+          </label>
+          <input
+            type="text"
+            id="input-sender-contact"
+            class="form-input"
+            placeholder="Ex: @mon_insta ou 06 12 34 56 78"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            <span>Indice personnel</span>
+            <span class="optional">Optionnel</span>
+          </label>
+          <input
+            type="text"
+            id="input-sender-hint"
+            class="form-input"
+            placeholder="Ex: On s'est croisés à la fac..."
+            autocomplete="off"
+          />
+        </div>
+      </div>
+
+      <!-- Submit Action -->
+      <button class="btn btn-primary" onclick="submitMessage()" style="width: 100%;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+        <span>Envoyer mon message scellé</span>
+      </button>
+    </main>
+
+    <!-- Success Confirmation State (shown after submission) -->
+    <section id="success-card" class="bento-card success-card">
+      <div class="success-circle">✓</div>
+      <div>
+        <h2 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px;">Message scellé et transmis !</h2>
+        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; max-width: 380px;">
+          Votre message a été envoyé en toute discrétion à <strong id="success-recipient-name">@destinataire</strong>. Vos coordonnées sont désormais scellées et seront révélées dans exactement 4 jours.
+        </p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 10px;">
+        <button class="btn btn-primary" onclick="resetFormForNewMessage()" style="width: 100%;">
+          Envoyer un autre message
+        </button>
+        <a href="index.html" class="btn btn-outlined" style="width: 100%;">
+          Créer mon propre lien secret
+        </a>
+      </div>
+    </section>
+
+    <!-- Bento Security Explanations -->
+    <section class="bento-grid-2">
+      <div class="info-tile">
+        <div class="icon">🛡️</div>
+        <div class="title">Anonymat Total</div>
+        <div class="sub">Le destinataire lit le message sans voir qui vous êtes.</div>
+      </div>
+      <div class="info-tile">
+        <div class="icon">⏳</div>
+        <div class="title">Scellé 4 Jours</div>
+        <div class="sub">Révélation automatique à l'issue du compte à rebours de 96h.</div>
+      </div>
+    </section>
+
+    <!-- Create Own Link Call to Action -->
+    <section class="bento-card" style="text-align: center; padding: 20px;">
+      <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
+        Envie de recevoir vous aussi des questions secrètes ?
+      </div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 14px;">
+        Créez gratuitement votre propre lien personnalisé en 30 secondes.
+      </div>
+      <a href="index.html" class="btn btn-outlined" style="width: 100%;">
+        Obtenir mon lien personnel
+      </a>
+    </section>
+  </div>
+
+  <script>
+    const STORAGE_KEY_USERS = "secretlink_users_db";
+    const STORAGE_KEY_MSGS_PREFIX = "secretlink_msgs_";
+
+    let currentSelectedType = "confession";
+    let recipientUsername = "";
+    let recipientSlug = "";
+
+    function initSendPage() {
+      const urlParams = new URLSearchParams(window.location.search);
+      recipientSlug = urlParams.get('to') || urlParams.get('u') || urlParams.get('user') || "";
+
+      if (!recipientSlug) {
+        // Fallback: check if path contains /u/slug or similar
+        const pathParts = window.location.pathname.split('/');
+        const uIdx = pathParts.indexOf('u');
+        if (uIdx !== -1 && pathParts[uIdx + 1]) {
+          recipientSlug = pathParts[uIdx + 1];
+        }
+      }
+
+      recipientSlug = recipientSlug.trim();
+
+      // Retrieve registered users from local storage
+      let users = [];
+      try {
+        users = JSON.parse(localStorage.getItem(STORAGE_KEY_USERS)) || [];
+      } catch(e) { users = []; }
+
+      // Match user by username or link slug
+      const foundUser = users.find(u =>
+        (u.username && u.username.toLowerCase() === recipientSlug.toLowerCase()) ||
+        (u.slug && u.slug.toLowerCase() === recipientSlug.toLowerCase()) ||
+        (u.uniqueLinkSlug && u.uniqueLinkSlug.toLowerCase() === recipientSlug.toLowerCase())
+      );
+
+      if (foundUser) {
+        recipientUsername = foundUser.username;
+        document.getElementById("recipient-display-name").textContent = foundUser.username;
+        document.getElementById("recipient-avatar").textContent = foundUser.avatar || "💬";
+        if (foundUser.bio && foundUser.bio.trim()) {
+          document.getElementById("recipient-bio").textContent = foundUser.bio;
+        }
+      } else if (recipientSlug) {
+        // Clean display name from slug (e.g., ando_482 -> Ando)
+        let cleanName = recipientSlug;
+        if (cleanName.includes("_")) {
+          const parts = cleanName.split("_");
+          if (parts[0]) cleanName = parts[0];
+        }
+        cleanName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+        recipientUsername = recipientSlug;
+        document.getElementById("recipient-display-name").textContent = cleanName;
+        document.getElementById("recipient-avatar").textContent = "💬";
+      } else {
+        // No specific recipient in URL
+        recipientUsername = "anonyme";
+        document.getElementById("recipient-display-name").textContent = "Messagerie Anonyme";
+        document.getElementById("recipient-bio").textContent = "Posez une question anonyme ou partagez une confession.";
+      }
+
+      document.title = `Envoyer un message à @${recipientUsername} | SecretLink`;
+    }
+
+    function selectType(typeKey, typeLabel, btnElement) {
+      currentSelectedType = typeKey;
+      document.querySelectorAll(".type-btn").forEach(btn => btn.classList.remove("active"));
+      btnElement.classList.add("active");
+
+      const labelText = document.getElementById("label-message-text");
+      const textarea = document.getElementById("input-message-text");
+
+      if (typeKey === 'confession') {
+        labelText.querySelector("span:first-child").textContent = "Votre confession secrète *";
+        textarea.placeholder = "Avouez quelque chose que vous n'avez jamais osé dire en face...";
+      } else if (typeKey === 'question') {
+        labelText.querySelector("span:first-child").textContent = "Votre question anonyme *";
+        textarea.placeholder = "Posez une question indiscrète ou curieuse...";
+      } else if (typeKey === 'secret') {
+        labelText.querySelector("span:first-child").textContent = "Votre secret scellé *";
+        textarea.placeholder = "Partagez un secret bien gardé...";
+      } else if (typeKey === 'compliment') {
+        labelText.querySelector("span:first-child").textContent = "Votre compliment sincère *";
+        textarea.placeholder = "Dites quelque chose de gentil et valorisant...";
+      }
+    }
+
+    function updateCharCount() {
+      const textarea = document.getElementById("input-message-text");
+      document.getElementById("char-counter").textContent = `${textarea.value.length}/500`;
+    }
+
+    function submitMessage() {
+      const content = document.getElementById("input-message-text").value.trim();
+      const senderName = document.getElementById("input-sender-name").value.trim();
+      const senderContact = document.getElementById("input-sender-contact").value.trim();
+      const senderHint = document.getElementById("input-sender-hint").value.trim();
+
+      if (!content) {
+        showToast("Veuillez saisir votre message avant d'envoyer.");
+        document.getElementById("input-message-text").focus();
+        return;
+      }
+
+      const newMsg = {
+        id: "msg_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+        tag: currentSelectedType,
+        content: content,
+        senderName: senderName || "Anonyme",
+        senderContact: senderContact || "Non communiqué",
+        senderHint: senderHint || "Aucun indice",
+        receivedAt: Date.now(),
+        isRead: false,
+        isFavorite: false
+      };
+
+      // Target recipient key to isolate messages per pseudonym
+      const targetSlug = (recipientUsername || "anonyme").toLowerCase();
+      const msgsKey = STORAGE_KEY_MSGS_PREFIX + targetSlug;
+
+      let recipientMsgs = [];
+      try {
+        recipientMsgs = JSON.parse(localStorage.getItem(msgsKey)) || [];
+      } catch(e) { recipientMsgs = []; }
+
+      recipientMsgs.unshift(newMsg);
+      localStorage.setItem(msgsKey, JSON.stringify(recipientMsgs));
+
+      // Also store by original slug if different (to prevent mixing)
+      if (recipientSlug && recipientSlug.toLowerCase() !== targetSlug) {
+        const slugKey = STORAGE_KEY_MSGS_PREFIX + recipientSlug.toLowerCase();
+        let slugMsgs = [];
+        try {
+          slugMsgs = JSON.parse(localStorage.getItem(slugKey)) || [];
+        } catch(e) { slugMsgs = []; }
+        slugMsgs.unshift(newMsg);
+        localStorage.setItem(slugKey, JSON.stringify(slugMsgs));
+      }
+
+      // Show success view
+      document.getElementById("send-form-card").style.display = "none";
+      document.getElementById("success-card").style.display = "flex";
+      document.getElementById("success-recipient-name").textContent = `@${recipientUsername}`;
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      showToast("Message scellé envoyé avec succès !");
+    }
+
+    function resetFormForNewMessage() {
+      document.getElementById("input-message-text").value = "";
+      document.getElementById("input-sender-name").value = "";
+      document.getElementById("input-sender-contact").value = "";
+      document.getElementById("input-sender-hint").value = "";
+      updateCharCount();
+
+      document.getElementById("send-form-card").style.display = "flex";
+      document.getElementById("success-card").style.display = "none";
+    }
+
+    function showToast(text) {
+      const toast = document.getElementById("toast");
+      document.getElementById("toast-text").textContent = text;
+      toast.style.display = "flex";
+      setTimeout(() => {
+        toast.style.display = "none";
+      }, 3000);
+    }
+
+    window.addEventListener("DOMContentLoaded", initSendPage);
+  </script>
+</body>
+</html>
