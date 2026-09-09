@@ -21,6 +21,15 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE (LOWER(username) = LOWER(:identifier) OR LOWER(email) = LOWER(:identifier)) LIMIT 1")
     suspend fun findByIdentifier(identifier: String): UserEntity?
 
+    @Query("SELECT * FROM users WHERE LOWER(username) = LOWER(:username) OR LOWER(email) = LOWER(:email) LIMIT 1")
+    suspend fun findByUsernameOrEmail(username: String, email: String): UserEntity?
+
+    @Query("SELECT * FROM users ORDER BY createdAt DESC")
+    fun getAllUsersFlow(): Flow<List<UserEntity>>
+
+    @Query("SELECT * FROM users ORDER BY createdAt DESC")
+    suspend fun getAllUsers(): List<UserEntity>
+
     @Query("SELECT * FROM users WHERE uniqueLinkSlug = :slug LIMIT 1")
     suspend fun getUserBySlug(slug: String): UserEntity?
 

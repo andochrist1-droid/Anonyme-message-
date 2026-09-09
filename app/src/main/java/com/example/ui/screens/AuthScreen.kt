@@ -7,12 +7,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,7 +30,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
@@ -40,6 +45,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -66,8 +72,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.UserEntity
 import com.example.ui.AuthMode
 import com.example.ui.AuthUiState
 import com.example.ui.components.AVATAR_PRESETS
@@ -86,10 +94,13 @@ import com.example.ui.theme.WhiteSurface
 @Composable
 fun AuthScreen(
     state: AuthUiState,
+    savedAccounts: List<UserEntity> = emptyList(),
     onModeChange: (AuthMode) -> Unit,
     onInputChange: (identifier: String?, username: String?, email: String?, password: String?, photo: String?, bio: String?) -> Unit,
     onLoginSubmit: () -> Unit,
-    onRegisterSubmit: () -> Unit
+    onRegisterSubmit: () -> Unit,
+    onFastLogin: (UserEntity) -> Unit = {},
+    onRemoveSavedAccount: (Long) -> Unit = {}
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -99,6 +110,16 @@ fun AuthScreen(
     ) { uri: Uri? ->
         if (uri != null) {
             onInputChange(null, null, null, null, uri.toString(), null)
+        }
+    }
+
+    // Check if the current registration input matches an existing account
+    val matchingAccount = remember(state.usernameInput, state.emailInput, savedAccounts) {
+        val u = state.usernameInput.trim().lowercase()
+        val e = state.emailInput.trim().lowercase()
+        savedAccounts.firstOrNull { acc ->
+            (u.isNotEmpty() && acc.username.lowercase() == u) ||
+            (e.isNotEmpty() && acc.email.lowercase() == e)
         }
     }
 
@@ -240,6 +261,132 @@ fun AuthScreen(
                     }
 
                     if (state.mode == AuthMode.Login) {
+                        // Display saved accounts list for instant one-click login if any exist
+                        if (savedAccounts.isNotEmpty()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(bottom = 6.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFFFEF3C7)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Bolt,
+                                            contentDescription = null,
+                                            tint = Color(0xFFD97706),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        "Comptes enregistrés sur cet appareil",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                        color = SlateTextPrimary
+                                    )
+                                }
+                                Text(
+                                    "Connexion instantanée en 1 clic sans retaper votre mot de passe :",
+                                    fontSize = 11.sp,
+                                    color = SlateTextSecondary,
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                )
+
+                                savedAccounts.forEach { acc ->
+                                    Surface(
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = Color(0xFFF8FAFC),
+                                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 3.dp)
+                                            .clickable { onFastLogin(acc) }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            UserAvatar(
+                                                photoUriOrPreset = acc.profilePicUri,
+                                                username = acc.username,
+                                                size = 38.dp
+                                            )
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = "@${acc.username}",
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 13.sp,
+                                                    color = SlateTextPrimary,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Text(
+                                                    text = acc.email,
+                                                    fontSize = 11.sp,
+                                                    color = SlateTextSecondary,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                            Button(
+                                                onClick = { onFastLogin(acc) },
+                                                colors = ButtonDefaults.buttonColors(containerColor = BluePrimary),
+                                                shape = RoundedCornerShape(10.dp),
+                                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                                modifier = Modifier.height(32.dp)
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Bolt,
+                                                    contentDescription = null,
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(13.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text("Entrer", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                            IconButton(
+                                                onClick = { onRemoveSavedAccount(acc.id) },
+                                                modifier = Modifier.size(28.dp)
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.DeleteOutline,
+                                                    contentDescription = "Oublier ce compte",
+                                                    tint = Color(0xFF94A3B8),
+                                                    modifier = Modifier.size(15.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    HorizontalDivider(modifier = Modifier.weight(1f), color = SlateBorder)
+                                    Text(
+                                        " ou autre compte ",
+                                        fontSize = 11.sp,
+                                        color = SlateTextMuted,
+                                        modifier = Modifier.padding(horizontal = 8.dp)
+                                    )
+                                    HorizontalDivider(modifier = Modifier.weight(1f), color = SlateBorder)
+                                }
+                                Spacer(modifier = Modifier.height(10.dp))
+                            }
+                        }
+
                         // Login fields
                         OutlinedTextField(
                             value = state.identifierInput,
@@ -315,6 +462,65 @@ fun AuthScreen(
                         }
 
                     } else {
+                        // Alert if matching account already exists on device
+                        if (matchingAccount != null) {
+                            Card(
+                                shape = RoundedCornerShape(18.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7)),
+                                border = BorderStroke(1.dp, Color(0xFFF59E0B)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            Icons.Default.Info,
+                                            contentDescription = null,
+                                            tint = Color(0xFFB45309),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            "Compte déjà enregistré !",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = Color(0xFF92400E)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        "Ce compte (@${matchingAccount.username}) existe déjà avec ces coordonnées. Pas besoin d'en créer un nouveau !",
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF78350F)
+                                    )
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Button(
+                                        onClick = { onFastLogin(matchingAccount) },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706)),
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(40.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Bolt,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            "Se connecter instantanément à @${matchingAccount.username}",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
                         // Register fields with profile photo picker
                         Text(
                             text = "Photo de profil",

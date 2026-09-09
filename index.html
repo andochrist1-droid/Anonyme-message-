@@ -787,6 +787,24 @@
 
         <!-- TAB 1: CONNEXION -->
         <div id="form-login">
+          <!-- Section des connexions mémorisées pour connexion instantanée -->
+          <div id="saved-accounts-section" style="display: none; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+              <span style="font-size: 16px;">⚡</span>
+              <span style="font-size: 13px; font-weight: 800; color: var(--text-primary);">Connexions mémorisées sur cet appareil</span>
+            </div>
+            <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.4;">
+              Connexion instantanée en 1 clic sans retaper votre mot de passe :
+            </p>
+            <div id="saved-accounts-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            
+            <div style="display: flex; align-items: center; margin: 14px 0 12px 0;">
+              <div style="flex: 1; height: 1px; background: var(--border);"></div>
+              <span style="font-size: 11px; color: var(--text-muted); padding: 0 8px; font-weight: 600;">ou autre identifiant</span>
+              <div style="flex: 1; height: 1px; background: var(--border);"></div>
+            </div>
+          </div>
+
           <div class="form-group">
             <label class="form-label">Nom d'utilisateur ou E-mail</label>
             <input type="text" id="login-identifier" class="form-input" placeholder="Ex: julie ou julie@mail.com" autocomplete="username">
@@ -802,6 +820,18 @@
 
         <!-- TAB 2: CRÉER UN COMPTE -->
         <div id="form-register" style="display: none;">
+          <!-- Alerte doublon compte déjà existant -->
+          <div id="reg-duplicate-alert" style="display: none; background: #FEF3C7; border: 1.5px solid #F59E0B; border-radius: var(--radius-md); padding: 12px; margin-bottom: 14px;">
+            <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px; color: #92400E;">
+              <span>⚠️</span>
+              <span>Compte déjà existant sur cet appareil !</span>
+            </div>
+            <p id="reg-duplicate-desc" style="font-size: 12px; color: #78350F; margin: 6px 0 10px 0; line-height: 1.4;"></p>
+            <button id="reg-duplicate-btn" type="button" class="btn btn-primary" style="background: #D97706; width: 100%; font-size: 12px; padding: 10px;">
+              ⚡ Se connecter instantanément à ce compte
+            </button>
+          </div>
+
           <div class="form-group">
             <label class="form-label">Choisissez un avatar</label>
             <div class="avatar-grid" id="avatar-selector">
@@ -1309,13 +1339,28 @@
         // Visitor mode to send a message
         setupVisitorMode(recipientSlug);
       } else if (currentUser) {
-        // Logged in user dashboard
+        // Logged in user dashboard - Instant connection!
         loadUserData();
         showLoggedInApp();
       } else {
-        // Not logged in -> Show Authentication Screen directly!
-        showAuthScreen();
+        // Check if there is a saved account to connect instantly
+        const lastUsername = localStorage.getItem("secretlink_last_user");
+        const users = getUsersList();
+        const lastUser = lastUsername ? users.find(u => u.username.toLowerCase() === lastUsername.toLowerCase()) : null;
+        if (lastUser) {
+          currentUser = lastUser;
+          localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(lastUser));
+          loadUserData();
+          showLoggedInApp();
+        } else {
+          // Not logged in -> Show Authentication Screen directly with saved accounts!
+          showAuthScreen();
+        }
       }
+
+      // Live duplicate check listener
+      document.getElementById("reg-username")?.addEventListener("input", checkRegistrationDuplicates);
+      document.getElementById("reg-email")?.addEventListener("input", checkRegistrationDuplicates);
 
       // Start Countdown Ticker
       setInterval(tickCountdown, 1000);
@@ -1388,6 +1433,96 @@
     // ==========================================
     // AUTHENTICATION LOGIC (LOGIN & REGISTER)
     // ==========================================
+    function renderSavedAccounts() {
+      const savedSection = document.getElementById("saved-accounts-section");
+      const listContainer = document.getElementById("saved-accounts-list");
+      if (!savedSection || !listContainer) return;
+
+      const users = getUsersList();
+      if (users.length === 0) {
+        savedSection.style.display = "none";
+        listContainer.innerHTML = "";
+        return;
+      }
+
+      savedSection.style.display = "block";
+      listContainer.innerHTML = users.map(u => `
+        <div style="display: flex; align-items: center; justify-content: space-between; background: #F8FAFC; border: 1.5px solid var(--border); border-radius: var(--radius-md); padding: 8px 12px; cursor: pointer; transition: var(--transition);" onclick="instantLogin('${u.username}')" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+            <div style="width: 38px; height: 38px; min-width: 38px; border-radius: 50%; background: var(--primary-container); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 20px;">
+              ${u.avatar || '🔒'}
+            </div>
+            <div style="overflow: hidden;">
+              <div style="font-weight: 800; font-size: 13px; color: var(--text-primary); white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">@${u.username}</div>
+              <div style="font-size: 11px; color: var(--text-secondary); white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${u.email}</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px; margin-left: 8px;">
+            <button type="button" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px; font-weight: 800; border-radius: 8px;" onclick="event.stopPropagation(); instantLogin('${u.username}')">
+              ⚡ Entrer
+            </button>
+            <button type="button" style="background: none; border: none; color: #94A3B8; cursor: pointer; padding: 4px; font-size: 14px;" title="Oublier ce compte" onclick="event.stopPropagation(); forgetSavedAccount('${u.username}')">
+              🗑️
+            </button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function instantLogin(username) {
+      const users = getUsersList();
+      const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+      if (!user) {
+        showAuthAlert("Compte introuvable.");
+        return;
+      }
+      currentUser = user;
+      localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(user));
+      localStorage.setItem("secretlink_last_user", user.username);
+      loadUserData();
+      showLoggedInApp();
+      showToast(`Connexion instantanée à @${user.username} réussie !`);
+    }
+
+    function forgetSavedAccount(username) {
+      if (!confirm(`Supprimer @${username} des comptes mémorisés sur cet appareil ?`)) return;
+      const users = getUsersList().filter(u => u.username.toLowerCase() !== username.toLowerCase());
+      saveUsersList(users);
+      renderSavedAccounts();
+      showToast("Compte retiré de la mémoire de l'appareil.");
+    }
+
+    function checkRegistrationDuplicates() {
+      const usernameInput = document.getElementById("reg-username");
+      const emailInput = document.getElementById("reg-email");
+      const alertBox = document.getElementById("reg-duplicate-alert");
+      const descEl = document.getElementById("reg-duplicate-desc");
+      const btnEl = document.getElementById("reg-duplicate-btn");
+      if (!usernameInput || !emailInput || !alertBox) return;
+
+      const uVal = usernameInput.value.trim().toLowerCase();
+      const eVal = emailInput.value.trim().toLowerCase();
+
+      if (!uVal && !eVal) {
+        alertBox.style.display = "none";
+        return;
+      }
+
+      const users = getUsersList();
+      const match = users.find(u =>
+        (uVal && u.username.toLowerCase() === uVal) ||
+        (eVal && u.email.toLowerCase() === eVal)
+      );
+
+      if (match) {
+        alertBox.style.display = "block";
+        descEl.textContent = `Un compte avec ce pseudonyme ou cet e-mail (@${match.username} - ${match.email}) est déjà enregistré sur cet appareil ! Inutile de créer un doublon.`;
+        btnEl.onclick = () => instantLogin(match.username);
+      } else {
+        alertBox.style.display = "none";
+      }
+    }
+
     function switchAuthTab(tab) {
       const loginBtn = document.getElementById("tab-btn-login");
       const regBtn = document.getElementById("tab-btn-register");
@@ -1401,11 +1536,13 @@
         regBtn.classList.remove("active");
         loginForm.style.display = "block";
         regForm.style.display = "none";
+        renderSavedAccounts();
       } else {
         regBtn.classList.add("active");
         loginBtn.classList.remove("active");
         regForm.style.display = "block";
         loginForm.style.display = "none";
+        checkRegistrationDuplicates();
       }
     }
 
@@ -1475,12 +1612,13 @@
       }
 
       const users = getUsersList();
-      if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
-        showAuthAlert("Ce nom d'utilisateur est déjà pris. Veuillez en choisir un autre.");
-        return;
-      }
-      if (users.some(u => u.email.toLowerCase() === email)) {
-        showAuthAlert("Un compte existe déjà avec cette adresse email.");
+      const existingUser = users.find(u =>
+        u.username.toLowerCase() === username.toLowerCase() ||
+        u.email.toLowerCase() === email
+      );
+      if (existingUser) {
+        showAuthAlert(`Ce compte (@${existingUser.username}) existe déjà sur cet appareil avec ces coordonnées ! Inutile d'en recréer un nouveau.`);
+        checkRegistrationDuplicates();
         return;
       }
 
@@ -1500,9 +1638,10 @@
       // Log in immediately
       currentUser = newUser;
       localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(newUser));
+      localStorage.setItem("secretlink_last_user", newUser.username);
       loadUserData();
       showLoggedInApp();
-      showToast("Compte créé avec succès !");
+      showToast("Compte créé et connecté avec succès !");
     }
 
     function handleLogout() {
@@ -1538,6 +1677,7 @@
       document.getElementById("app-bottom-nav").style.display = "none";
       document.getElementById("top-user-indicator").style.display = "none";
       document.getElementById("main-container").classList.add("no-nav");
+      renderSavedAccounts();
     }
 
     function showLoggedInApp() {

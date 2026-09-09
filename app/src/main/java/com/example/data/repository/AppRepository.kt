@@ -29,14 +29,16 @@ class AppRepository(context: Context) {
     private val _currentSession = MutableStateFlow<SessionLogEntity?>(null)
     val currentSession: StateFlow<SessionLogEntity?> = _currentSession.asStateFlow()
 
+    val allUsers: Flow<List<UserEntity>> = userDao.getAllUsersFlow()
+
     private val repoScope = CoroutineScope(Dispatchers.IO)
 
     init {
         repoScope.launch {
-            // Purge any legacy demo account so users land directly on login/register
+            // Purge any legacy demo account so users land directly on clean state
             userDao.deleteDemoUser()
 
-            // Restore last registered/logged in user if available
+            // Restore last registered/logged in user if available for instant connection
             val latest = userDao.getLatestUser()
             if (latest != null) {
                 _currentUser.value = latest
@@ -48,7 +50,7 @@ class AppRepository(context: Context) {
                     deviceName = SecurityUtils.getDeviceModel(),
                     osVersion = SecurityUtils.getOsVersion(),
                     ipAddress = SecurityUtils.generateSimulatedIp(),
-                    locationEstimate = "Session chiffrée SSL/TLS",
+                    locationEstimate = "Connexion instantanée sécurisée",
                     sessionToken = token
                 )
                 val sid = sessionDao.insertSession(session)
@@ -58,6 +60,27 @@ class AppRepository(context: Context) {
                 _currentSession.value = null
             }
         }
+    }
+
+    suspend fun fastLogin(user: UserEntity): Result<UserEntity> = withContext(Dispatchers.IO) {
+        val existing = userDao.getUserById(user.id)
+            ?: return@withContext Result.failure(Exception("Compte introuvable sur cet appareil"))
+
+        val sessionToken = SecurityUtils.generateSessionToken()
+        val session = SessionLogEntity(
+            userId = existing.id,
+            username = existing.username,
+            deviceName = SecurityUtils.getDeviceModel(),
+            osVersion = SecurityUtils.getOsVersion(),
+            ipAddress = SecurityUtils.generateSimulatedIp(),
+            locationEstimate = "Connexion instantanée (1-Clic)",
+            sessionToken = sessionToken
+        )
+        val sid = sessionDao.insertSession(session)
+
+        _currentUser.value = existing
+        _currentSession.value = session.copy(id = sid)
+        Result.success(existing)
     }
 
     suspend fun login(identifier: String, password: String): Result<UserEntity> = withContext(Dispatchers.IO) {
@@ -106,9 +129,11 @@ class AppRepository(context: Context) {
             return@withContext Result.failure(Exception("Le mot de passe doit comporter au moins 4 caractères"))
         }
 
-        val existing = userDao.findByIdentifier(cleanUser) ?: userDao.findByIdentifier(cleanEmail)
+        val existing = userDao.findByUsernameOrEmail(cleanUser, cleanEmail)
+            ?: userDao.findByIdentifier(cleanUser)
+            ?: userDao.findByIdentifier(cleanEmail)
         if (existing != null) {
-            return@withContext Result.failure(Exception("Ce nom d'utilisateur ou cet e-mail est déjà utilisé"))
+            return@withContext Result.failure(Exception("Un compte existe déjà avec ce pseudonyme ou cet e-mail. Veuillez vous connecter directement."))
         }
 
         val slug = cleanUser.lowercase().replace(" ", "_") + "_" + (100..999).random()
@@ -253,5 +278,13 @@ class AppRepository(context: Context) {
 
     suspend fun deleteMessage(messageId: Long) = withContext(Dispatchers.IO) {
         messageDao.deleteMessage(messageId)
+    }
+
+    suspend fun removeSavedAccount(userId: Long) = withContext(Dispatchers.IO) {
+        userDao.deleteUser(userId)
+        if (_currentUser.value?.id == userId) {
+            _currentUser.value = null
+            _currentSession.value = null
+        }
     }
 }

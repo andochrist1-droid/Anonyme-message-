@@ -40,6 +40,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val currentUser: StateFlow<UserEntity?> = repository.currentUser
     val currentSession: StateFlow<SessionLogEntity?> = repository.currentSession
 
+    val savedAccounts: StateFlow<List<UserEntity>> = repository.allUsers
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     val sessions: StateFlow<List<SessionLogEntity>> = repository.getSessionsForCurrentUser()
         .stateIn(
             scope = viewModelScope,
@@ -157,6 +164,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     errorMessage = result.exceptionOrNull()?.message ?: "Erreur d'inscription"
                 )
             }
+        }
+    }
+
+    fun fastLogin(user: UserEntity) {
+        viewModelScope.launch {
+            _authUiState.value = _authUiState.value.copy(isLoading = true, errorMessage = null)
+            val result = repository.fastLogin(user)
+            if (result.isSuccess) {
+                _authUiState.value = AuthUiState()
+            } else {
+                _authUiState.value = _authUiState.value.copy(
+                    isLoading = false,
+                    errorMessage = result.exceptionOrNull()?.message ?: "Échec de connexion instantanée"
+                )
+            }
+        }
+    }
+
+    fun removeSavedAccount(userId: Long) {
+        viewModelScope.launch {
+            repository.removeSavedAccount(userId)
         }
     }
 

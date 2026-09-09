@@ -32,6 +32,7 @@ class MainActivity : ComponentActivity() {
 fun AnonymousApp(viewModel: MainViewModel = viewModel()) {
   val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
   val authState by viewModel.authUiState.collectAsStateWithLifecycle()
+  val savedAccounts by viewModel.savedAccounts.collectAsStateWithLifecycle()
 
   Crossfade(
     targetState = currentUser != null,
@@ -43,12 +44,15 @@ fun AnonymousApp(viewModel: MainViewModel = viewModel()) {
     } else {
       AuthScreen(
         state = authState,
+        savedAccounts = savedAccounts,
         onModeChange = { viewModel.setAuthMode(it) },
         onInputChange = { id, u, e, p, pic, bio ->
           viewModel.updateAuthInput(id, u, e, p, pic, bio)
         },
         onLoginSubmit = { viewModel.submitLogin() },
-        onRegisterSubmit = { viewModel.submitRegister() }
+        onRegisterSubmit = { viewModel.submitRegister() },
+        onFastLogin = { viewModel.fastLogin(it) },
+        onRemoveSavedAccount = { viewModel.removeSavedAccount(it) }
       )
     }
   }
