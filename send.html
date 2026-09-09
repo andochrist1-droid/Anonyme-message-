@@ -576,20 +576,52 @@
     </section>
   </div>
 
+  <!-- FIREBASE SDK v9 (Compat for seamless browser integration) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
   <script>
-    const STORAGE_KEY_USERS = "secretlink_users_db";
+    const STORAGE_KEY_USERS = "secretlink_registered_users";
+    const STORAGE_KEY_USERS_OLD = "secretlink_users_db";
     const STORAGE_KEY_MSGS_PREFIX = "secretlink_msgs_";
+
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDnoI2H73ihZ2FwAYxj6eJ7qLH_s9f2Q6U",
+      authDomain: "anonyme-message.firebaseapp.com",
+      databaseURL: "https://anonyme-message-default-rtdb.firebaseio.com",
+      projectId: "anonyme-message",
+      storageBucket: "anonyme-message.firebasestorage.app",
+      messagingSenderId: "196227733380",
+      appId: "1:196227733380:web:1661b1b27a8bd204316fd1",
+      measurementId: "G-NFXTBVNDCQ"
+    };
+
+    let firebaseApp = null;
+    let firebaseDb = null;
+
+    try {
+      if (typeof firebase !== "undefined") {
+        firebaseApp = firebase.initializeApp(firebaseConfig);
+        firebaseDb = firebase.database();
+      }
+    } catch (e) {
+      console.warn("Firebase send page:", e);
+    }
+
+    function sanitizeKey(key) {
+      return (key || "").replace(/[.#$\[\]\/]/g, "_").toLowerCase();
+    }
 
     let currentSelectedType = "confession";
     let recipientUsername = "";
     let recipientSlug = "";
 
-    function initSendPage() {
+    async function initSendPage() {
       const urlParams = new URLSearchParams(window.location.search);
       recipientSlug = urlParams.get('to') || urlParams.get('u') || urlParams.get('user') || "";
 
       if (!recipientSlug) {
-        // Fallback: check if path contains /u/slug or similar
         const pathParts = window.location.pathname.split('/');
         const uIdx = pathParts.indexOf('u');
         if (uIdx !== -1 && pathParts[uIdx + 1]) {
@@ -599,11 +631,31 @@
 
       recipientSlug = recipientSlug.trim();
 
-      // Retrieve registered users from local storage
+      // Retrieve registered users from local storage first
       let users = [];
       try {
-        users = JSON.parse(localStorage.getItem(STORAGE_KEY_USERS)) || [];
+        users = JSON.parse(localStorage.getItem(STORAGE_KEY_USERS)) ||
+                JSON.parse(localStorage.getItem(STORAGE_KEY_USERS_OLD)) || [];
       } catch(e) { users = []; }
+
+      // Try fetching recipient from Firebase Cloud Database directly
+      if (firebaseDb && recipientSlug) {
+        try {
+          const sKey = sanitizeKey(recipientSlug);
+          const snap = await firebaseDb.ref(`users/${sKey}`).once("value");
+          if (snap.exists()) {
+            const cloudUser = snap.val();
+            if (cloudUser) {
+              const existingIdx = users.findIndex(u => u.username && u.username.toLowerCase() === cloudUser.username.toLowerCase());
+              if (existingIdx >= 0) users[existingIdx] = cloudUser;
+              else users.push(cloudUser);
+              localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+            }
+          }
+        } catch(e) {
+          console.warn("Error fetching recipient from cloud:", e);
+        }
+      }
 
       // Match user by username or link slug
       const foundUser = users.find(u =>
@@ -620,7 +672,6 @@
           document.getElementById("recipient-bio").textContent = foundUser.bio;
         }
       } else if (recipientSlug) {
-        // Clean display name from slug (e.g., ando_482 -> Ando)
         let cleanName = recipientSlug;
         if (cleanName.includes("_")) {
           const parts = cleanName.split("_");
@@ -631,7 +682,6 @@
         document.getElementById("recipient-display-name").textContent = cleanName;
         document.getElementById("recipient-avatar").textContent = "💬";
       } else {
-        // No specific recipient in URL
         recipientUsername = "anonyme";
         document.getElementById("recipient-display-name").textContent = "Messagerie Anonyme";
         document.getElementById("recipient-bio").textContent = "Posez une question anonyme ou partagez une confession.";
@@ -668,7 +718,7 @@
       document.getElementById("char-counter").textContent = `${textarea.value.length}/500`;
     }
 
-    function submitMessage() {
+    async function submitMessage() {
       const content = document.getElementById("input-message-text").value.trim();
       const senderName = document.getElementById("input-sender-name").value.trim();
       const senderContact = document.getElementById("input-sender-contact").value.trim();
@@ -703,6 +753,24 @@
 
       recipientMsgs.unshift(newMsg);
       localStorage.setItem(msgsKey, JSON.stringify(recipientMsgs));
+
+      // Synchronize directly to Firebase Cloud Database for instant multi-device reception!
+      if (firebaseDb) {
+        try {
+          const uKey = sanitizeKey(targetSlug);
+          // Fetch existing cloud messages first to prepend safely
+          const cloudSnap = await firebaseDb.ref(`user_messages/${uKey}`).once("value");
+          let cloudList = [];
+          if (cloudSnap.exists()) {
+            const v = cloudSnap.val();
+            cloudList = Array.isArray(v) ? v : Object.values(v);
+          }
+          cloudList.unshift(newMsg);
+          await firebaseDb.ref(`user_messages/${uKey}`).set(cloudList);
+        } catch (e) {
+          console.warn("Erreur sauvegarde cloud du message:", e);
+        }
+      }
 
       // Also store by original slug if different (to prevent mixing)
       if (recipientSlug && recipientSlug.toLowerCase() !== targetSlug) {

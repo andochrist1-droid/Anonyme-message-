@@ -757,6 +757,10 @@
           <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Protocole de Révélation 4 Jours</div>
         </div>
       </div>
+      <div id="cloud-sync-pill" class="status-pill" style="margin-left: auto; margin-right: 6px; background: #EEF2FF; border: 1px solid #C7D2FE; color: #3730A3; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px;" title="Synchronisation Cloud Firebase active">
+        <span id="cloud-status-dot" style="width: 7px; height: 7px; border-radius: 50%; background: #22C55E; display: inline-block;"></span>
+        <span id="cloud-status-text">Cloud Sync</span>
+      </div>
       <div id="top-user-indicator" class="status-pill" style="display: none;">
         <span class="status-pill-dot"></span>
         <span id="top-username-label">CONNECTÉ</span>
@@ -1121,19 +1125,23 @@
       </div>
 
       <div class="bento-card">
-        <div class="micro-header">Sécurité & Protocole</div>
+        <div class="micro-header">Sécurité & Synchronisation Cloud</div>
         <div class="sensitive-box">
+          <div class="detail-row">
+            <span class="detail-label">Base de données Cloud</span>
+            <span class="detail-val" style="color: #059669;">⚡ Firebase Connecté</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Multi-appareils</span>
+            <span class="detail-val">Synchronisé en temps réel</span>
+          </div>
           <div class="detail-row">
             <span class="detail-label">Durée de révélation</span>
             <span class="detail-val">4 Jours (96h)</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">Stockage de session</span>
-            <span class="detail-val">LocalStorage Chiffré</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Hébergement</span>
-            <span class="detail-val">GitHub Pages Compatible</span>
+            <span class="detail-label">Stockage de secours</span>
+            <span class="detail-val">Cache Local + Cloud</span>
           </div>
         </div>
       </div>
@@ -1292,16 +1300,61 @@
     </div>
   </div>
 
+  <!-- FIREBASE SDK v9 (Compat for seamless browser integration) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
+
   <!-- JAVASCRIPT APPLICATION ENGINE -->
   <script>
     // 4 Days in Milliseconds: 4 * 24 * 60 * 60 * 1000 = 345,600,000 ms
     const PROTOCOL_DURATION_MS = 4 * 24 * 60 * 60 * 1000;
 
-    // Local Storage Keys
+    // Local Storage Keys (used as fast instant cache)
     const STORAGE_KEY_USERS = "secretlink_registered_users";
     const STORAGE_KEY_CURRENT_USER = "secretlink_logged_user";
     const STORAGE_KEY_MSGS_PREFIX = "secretlink_msgs_";
     const STORAGE_KEY_SESSIONS_PREFIX = "secretlink_sess_";
+
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDnoI2H73ihZ2FwAYxj6eJ7qLH_s9f2Q6U",
+      authDomain: "anonyme-message.firebaseapp.com",
+      databaseURL: "https://anonyme-message-default-rtdb.firebaseio.com",
+      projectId: "anonyme-message",
+      storageBucket: "anonyme-message.firebasestorage.app",
+      messagingSenderId: "196227733380",
+      appId: "1:196227733380:web:1661b1b27a8bd204316fd1",
+      measurementId: "G-NFXTBVNDCQ"
+    };
+
+    // Initialize Firebase
+    let firebaseApp = null;
+    let firebaseDb = null;
+    let isCloudReady = false;
+
+    try {
+      if (typeof firebase !== "undefined") {
+        firebaseApp = firebase.initializeApp(firebaseConfig);
+        firebaseDb = firebase.database();
+        try { firebase.analytics(); } catch(e) {}
+        isCloudReady = true;
+        console.log("Firebase Database initialisée avec succès.");
+      }
+    } catch (e) {
+      console.warn("Initialisation Firebase en mode secours local:", e);
+    }
+
+    function sanitizeKey(key) {
+      return (key || "").replace(/[.#$\[\]\/]/g, "_").toLowerCase();
+    }
+
+    function setCloudStatus(isOnline, text) {
+      const dot = document.getElementById("cloud-status-dot");
+      const label = document.getElementById("cloud-status-text");
+      if (dot) dot.style.background = isOnline ? "#22C55E" : "#EAB308";
+      if (label) label.textContent = text || (isOnline ? "Cloud Sync" : "Local");
+    }
 
     // Application State
     let currentUser = null;
@@ -1310,9 +1363,10 @@
     let sessions = [];
     let currentFilter = "all";
     let selectedMessageId = null;
+    let activeDbListeners = [];
 
     // Initialize Application
-    function initApp() {
+    async function initApp() {
       // Clean up any legacy demo user from previous demo version
       cleanupLegacyDemo();
 
@@ -1321,11 +1375,11 @@
       const recipientSlug = urlParams.get('to') || urlParams.get('u');
 
       if (recipientSlug) {
-        // Automatically redirect to the dedicated platform send.html
         window.location.replace(`send.html?to=${encodeURIComponent(recipientSlug)}`);
         return;
       }
 
+      // 1. First attempt to load local cache for instant UI response
       const storedLoggedUser = localStorage.getItem(STORAGE_KEY_CURRENT_USER);
       if (storedLoggedUser) {
         try {
@@ -1335,13 +1389,15 @@
         }
       }
 
-      if (recipientSlug && (!currentUser || currentUser.username.toLowerCase() !== recipientSlug.toLowerCase())) {
-        // Visitor mode to send a message
-        setupVisitorMode(recipientSlug);
-      } else if (currentUser) {
+      // 2. Synchronize all accounts from Firebase Cloud Database in background
+      await syncAllUsersFromCloud();
+
+      if (currentUser) {
         // Logged in user dashboard - Instant connection!
         loadUserData();
         showLoggedInApp();
+        // Setup real-time cloud listener for cross-device synchronization
+        listenToUserCloudData(currentUser.username);
       } else {
         // Check if there is a saved account to connect instantly
         const lastUsername = localStorage.getItem("secretlink_last_user");
@@ -1352,6 +1408,7 @@
           localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(lastUser));
           loadUserData();
           showLoggedInApp();
+          listenToUserCloudData(currentUser.username);
         } else {
           // Not logged in -> Show Authentication Screen directly with saved accounts!
           showAuthScreen();
@@ -1390,6 +1447,120 @@
       localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
     }
 
+    // Cloud Users Synchronization
+    async function syncAllUsersFromCloud() {
+      if (!firebaseDb) return;
+      try {
+        setCloudStatus(true, "Synchronisation...");
+        const snapshot = await firebaseDb.ref("users").once("value");
+        if (snapshot.exists()) {
+          const cloudUsersObj = snapshot.val();
+          const localUsers = getUsersList();
+          const userMap = new Map();
+
+          // Load local users first
+          localUsers.forEach(u => {
+            if (u && u.username) userMap.set(u.username.toLowerCase(), u);
+          });
+
+          // Merge cloud users (Cloud is the authoritative source across devices)
+          Object.keys(cloudUsersObj).forEach(key => {
+            const u = cloudUsersObj[key];
+            if (u && u.username) {
+              userMap.set(u.username.toLowerCase(), u);
+            }
+          });
+
+          const mergedUsers = Array.from(userMap.values());
+          saveUsersList(mergedUsers);
+
+          // If current user is logged in, refresh data with authoritative cloud user
+          if (currentUser) {
+            const updated = mergedUsers.find(u => u.username.toLowerCase() === currentUser.username.toLowerCase());
+            if (updated) {
+              currentUser = updated;
+              localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(updated));
+            }
+          }
+
+          setCloudStatus(true, "Cloud Sync");
+          renderSavedAccounts();
+        } else {
+          // If cloud is empty, upload existing local users to Firebase
+          const localUsers = getUsersList();
+          for (const u of localUsers) {
+            if (u && u.username) {
+              const uKey = sanitizeKey(u.username);
+              await firebaseDb.ref(`users/${uKey}`).set(u);
+            }
+          }
+          setCloudStatus(true, "Cloud Sync");
+        }
+      } catch (err) {
+        console.warn("Erreur lors de la synchronisation cloud des utilisateurs:", err);
+        setCloudStatus(false, "Hors ligne");
+      }
+    }
+
+    // Cloud User Save
+    async function saveUserToCloud(user) {
+      if (!firebaseDb || !user || !user.username) return;
+      try {
+        const uKey = sanitizeKey(user.username);
+        await firebaseDb.ref(`users/${uKey}`).set(user);
+        setCloudStatus(true, "Cloud Sync");
+      } catch (e) {
+        console.error("Erreur de sauvegarde utilisateur dans Firebase:", e);
+      }
+    }
+
+    // Real-time listener for current user messages & sessions across all devices
+    function listenToUserCloudData(username) {
+      if (!firebaseDb || !username) return;
+      const uKey = sanitizeKey(username);
+
+      // Clean up any previous listeners
+      activeDbListeners.forEach(l => l.ref.off(l.event, l.fn));
+      activeDbListeners = [];
+
+      // 1. Listen to real-time incoming messages
+      const msgsRef = firebaseDb.ref(`user_messages/${uKey}`);
+      const msgsFn = (snapshot) => {
+        if (snapshot.exists()) {
+          const val = snapshot.val();
+          const cloudMsgs = Array.isArray(val) ? val : Object.values(val);
+          // Sort messages by newest first
+          cloudMsgs.sort((a, b) => (b.receivedAt || 0) - (a.receivedAt || 0));
+          messages = cloudMsgs;
+          saveUserMessagesLocalOnly();
+          renderUI();
+          setCloudStatus(true, "Cloud Sync");
+        }
+      };
+      msgsRef.on("value", msgsFn);
+      activeDbListeners.push({ ref: msgsRef, event: "value", fn: msgsFn });
+
+      // 2. Listen to real-time sessions across devices
+      const sessRef = firebaseDb.ref(`user_sessions/${uKey}`);
+      const sessFn = (snapshot) => {
+        if (snapshot.exists()) {
+          const val = snapshot.val();
+          const cloudSess = Array.isArray(val) ? val : Object.values(val);
+          // Preserve isCurrent flag for this local device
+          sessions = cloudSess.map(s => {
+            if (s.id === currentSessionId) s.isCurrent = true;
+            return s;
+          });
+          saveUserSessionsLocalOnly();
+          renderSessions();
+        }
+      };
+      sessRef.on("value", sessFn);
+      activeDbListeners.push({ ref: sessRef, event: "value", fn: sessFn });
+    }
+
+    let currentSessionId = "sess_" + Date.now();
+
     function loadUserData() {
       if (!currentUser) return;
       const msgsKey = STORAGE_KEY_MSGS_PREFIX + currentUser.username.toLowerCase();
@@ -1403,31 +1574,56 @@
         sessions = JSON.parse(localStorage.getItem(sessKey)) || [];
       } catch(e) { sessions = []; }
 
-      // If no active session recorded yet for this user, record current one
-      if (sessions.length === 0) {
+      // Register current device session
+      const existingCurrent = sessions.find(s => s.id === currentSessionId);
+      if (!existingCurrent) {
         const currentSess = {
-          id: "sess_" + Date.now(),
+          id: currentSessionId,
           deviceInfo: navigator.userAgent.includes("Mobile") ? "Smartphone Web" : "Navigateur Web",
-          ipAddress: "Session sécurisée TLS/SSL",
+          ipAddress: "Session Cloud Sécurisée",
           loginTime: Date.now(),
           isActive: true,
           isCurrent: true
         };
-        sessions.push(currentSess);
-        localStorage.setItem(sessKey, JSON.stringify(sessions));
+        sessions.unshift(currentSess);
+        saveUserSessions();
       }
     }
 
-    function saveUserMessages() {
+    function saveUserMessagesLocalOnly() {
       if (!currentUser) return;
       const msgsKey = STORAGE_KEY_MSGS_PREFIX + currentUser.username.toLowerCase();
       localStorage.setItem(msgsKey, JSON.stringify(messages));
     }
 
-    function saveUserSessions() {
+    function saveUserMessages() {
+      if (!currentUser) return;
+      saveUserMessagesLocalOnly();
+      // Sync to Firebase Cloud Database for instant multi-device availability
+      if (firebaseDb) {
+        const uKey = sanitizeKey(currentUser.username);
+        firebaseDb.ref(`user_messages/${uKey}`).set(messages).catch(err => {
+          console.warn("Échec synchronisation cloud des messages:", err);
+        });
+      }
+    }
+
+    function saveUserSessionsLocalOnly() {
       if (!currentUser) return;
       const sessKey = STORAGE_KEY_SESSIONS_PREFIX + currentUser.username.toLowerCase();
       localStorage.setItem(sessKey, JSON.stringify(sessions));
+    }
+
+    function saveUserSessions() {
+      if (!currentUser) return;
+      saveUserSessionsLocalOnly();
+      // Sync to Firebase Cloud Database
+      if (firebaseDb) {
+        const uKey = sanitizeKey(currentUser.username);
+        firebaseDb.ref(`user_sessions/${uKey}`).set(sessions).catch(err => {
+          console.warn("Échec synchronisation cloud des sessions:", err);
+        });
+      }
     }
 
     // ==========================================
@@ -1481,6 +1677,7 @@
       localStorage.setItem("secretlink_last_user", user.username);
       loadUserData();
       showLoggedInApp();
+      listenToUserCloudData(user.username);
       showToast(`Connexion instantanée à @${user.username} réussie !`);
     }
 
@@ -1558,7 +1755,7 @@
       alertBox.style.display = "block";
     }
 
-    function handleLogin() {
+    async function handleLogin() {
       const identifier = document.getElementById("login-identifier").value.trim().toLowerCase();
       const password = document.getElementById("login-password").value;
 
@@ -1566,6 +1763,10 @@
         showAuthAlert("Veuillez renseigner votre identifiant et votre mot de passe.");
         return;
       }
+
+      // First check cloud directly to guarantee freshest multi-device accounts
+      setCloudStatus(true, "Vérification Cloud...");
+      await syncAllUsersFromCloud();
 
       const users = getUsersList();
       const user = users.find(u =>
@@ -1585,12 +1786,14 @@
       // Login success!
       currentUser = user;
       localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(user));
+      localStorage.setItem("secretlink_last_user", user.username);
       loadUserData();
       showLoggedInApp();
-      showToast("Connexion réussie !");
+      listenToUserCloudData(user.username);
+      showToast("Connexion réussie ! Vos données ont été récupérées du Cloud.");
     }
 
-    function handleRegister() {
+    async function handleRegister() {
       const username = document.getElementById("reg-username").value.trim();
       const email = document.getElementById("reg-email").value.trim().toLowerCase();
       const password = document.getElementById("reg-password").value;
@@ -1611,13 +1814,16 @@
         return;
       }
 
+      // Ensure we check against latest cloud database
+      await syncAllUsersFromCloud();
+
       const users = getUsersList();
       const existingUser = users.find(u =>
         u.username.toLowerCase() === username.toLowerCase() ||
         u.email.toLowerCase() === email
       );
       if (existingUser) {
-        showAuthAlert(`Ce compte (@${existingUser.username}) existe déjà sur cet appareil avec ces coordonnées ! Inutile d'en recréer un nouveau.`);
+        showAuthAlert(`Ce compte (@${existingUser.username}) existe déjà dans la base de données avec ces coordonnées ! Inutile d'en recréer un nouveau.`);
         checkRegistrationDuplicates();
         return;
       }
@@ -1635,33 +1841,55 @@
       users.push(newUser);
       saveUsersList(users);
 
+      // Save to Firebase Cloud Database immediately for cross-device access
+      await saveUserToCloud(newUser);
+
       // Log in immediately
       currentUser = newUser;
       localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(newUser));
       localStorage.setItem("secretlink_last_user", newUser.username);
       loadUserData();
       showLoggedInApp();
-      showToast("Compte créé et connecté avec succès !");
+      listenToUserCloudData(newUser.username);
+      showToast("Compte créé et synchronisé sur le Cloud avec succès !");
     }
 
     function handleLogout() {
+      // Detach real-time listeners
+      activeDbListeners.forEach(l => l.ref.off(l.event, l.fn));
+      activeDbListeners = [];
+
       currentUser = null;
       localStorage.removeItem(STORAGE_KEY_CURRENT_USER);
       showAuthScreen();
       showToast("Déconnexion réussie.");
     }
 
-    function deleteUserAccount() {
+    async function deleteUserAccount() {
       if (!currentUser) return;
       if (!confirm("Voulez-vous vraiment supprimer votre compte et tous vos messages reçus ? Cette action est irréversible.")) {
         return;
       }
 
-      const users = getUsersList().filter(u => u.username.toLowerCase() !== currentUser.username.toLowerCase());
+      const userToDelete = currentUser.username;
+      const uKey = sanitizeKey(userToDelete);
+
+      // Delete from Firebase Cloud Database
+      if (firebaseDb) {
+        try {
+          await firebaseDb.ref(`users/${uKey}`).remove();
+          await firebaseDb.ref(`user_messages/${uKey}`).remove();
+          await firebaseDb.ref(`user_sessions/${uKey}`).remove();
+        } catch (e) {
+          console.warn("Erreur suppression cloud:", e);
+        }
+      }
+
+      const users = getUsersList().filter(u => u.username.toLowerCase() !== userToDelete.toLowerCase());
       saveUsersList(users);
 
-      const msgsKey = STORAGE_KEY_MSGS_PREFIX + currentUser.username.toLowerCase();
-      const sessKey = STORAGE_KEY_SESSIONS_PREFIX + currentUser.username.toLowerCase();
+      const msgsKey = STORAGE_KEY_MSGS_PREFIX + userToDelete.toLowerCase();
+      const sessKey = STORAGE_KEY_SESSIONS_PREFIX + userToDelete.toLowerCase();
       localStorage.removeItem(msgsKey);
       localStorage.removeItem(sessKey);
 
@@ -2058,7 +2286,7 @@
       showToast("Toutes les autres sessions ont été révoquées.");
     }
 
-    function saveProfileChanges() {
+    async function saveProfileChanges() {
       if (!currentUser) return;
       const newUsername = document.getElementById("input-edit-username").value.trim();
       const newBio = document.getElementById("input-edit-bio").value.trim();
@@ -2068,6 +2296,7 @@
         return;
       }
 
+      const oldUsername = currentUser.username;
       currentUser.username = newUsername;
       currentUser.bio = newBio;
       localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(currentUser));
@@ -2075,8 +2304,15 @@
       const users = getUsersList().map(u => u.id === currentUser.id ? currentUser : u);
       saveUsersList(users);
 
+      // Update in Firebase Cloud
+      await saveUserToCloud(currentUser);
+      if (oldUsername !== newUsername && firebaseDb) {
+        // If username changed, update cloud listener
+        listenToUserCloudData(newUsername);
+      }
+
       renderUI();
-      showToast("Profil mis à jour !");
+      showToast("Profil mis à jour et synchronisé sur le Cloud !");
     }
 
     // ==========================================
