@@ -267,3 +267,112 @@ test("SessionLog: owner create, revoke active=false, and terminal state lock", a
     bobDb.collection("users").doc(ALICE_UID).collection("sessions").get()
   );
 });
+
+test("PublicLink & visitor send.html submission: non-PII get, anti-list, and linkActive gate", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const unauthDb = testEnv.unauthenticatedContext().firestore();
+  const now = Date.now();
+  const ts = new Date(now - 5000);
+
+  await assertSucceeds(
+    aliceDb.collection("users").doc(ALICE_UID).set({
+      userId: ALICE_UID,
+      username: "Alice",
+      email: "alice@example.com",
+      profilePicUri: "preset_1",
+      bio: "Pose-moi une question !",
+      uniqueLinkSlug: "alice_123",
+      linkActive: true,
+      createdAt: ts,
+      updatedAt: ts,
+    })
+  );
+
+  await assertSucceeds(
+    aliceDb.collection("publicLinks").doc("alice_123").set({
+      slug: "alice_123",
+      ownerId: ALICE_UID,
+      username: "Alice",
+      profilePicUri: "preset_1",
+      bio: "Pose-moi une question !",
+      linkActive: true,
+      createdAt: ts,
+      updatedAt: ts,
+    })
+  );
+
+  // Visitor can get a specific public link without auth, but cannot list all links
+  await assertSucceeds(unauthDb.collection("publicLinks").doc("alice_123").get());
+  await assertFails(unauthDb.collection("publicLinks").get());
+  await assertFails(bobDb.collection("publicLinks").get());
+
+  // Bob cannot overwrite or delete Alice's public link
+  await assertFails(
+    bobDb.collection("publicLinks").doc("alice_123").update({
+      username: "Hacked",
+      updatedAt: new Date(Date.now() - 1000),
+    })
+  );
+
+  // Unauthenticated visitor can submit a sealed 4-day message when linkActive is true
+  await assertSucceeds(
+    unauthDb.collection("users").doc(ALICE_UID).collection("messages").doc("vis_msg_1").set({
+      userId: ALICE_UID,
+      messageText: "Coucou depuis send.html !",
+      receivedAtMillis: now,
+      unlockAtMillis: now + 345600000,
+      senderPseudo: "Visiteur",
+      senderCoordinates: "@visiteur",
+      senderDeviceInfo: "Web Browser",
+      tag: "Secret",
+      read: false,
+      favorite: false,
+      revealedManually: false,
+      createdAt: ts,
+      updatedAt: ts,
+    })
+  );
+
+  // Visitor cannot bypass 4-day seal or set revealedManually=true
+  await assertFails(
+    unauthDb.collection("users").doc(ALICE_UID).collection("messages").doc("vis_msg_cheat").set({
+      userId: ALICE_UID,
+      messageText: "Cheat timer",
+      receivedAtMillis: now,
+      unlockAtMillis: now + 1000,
+      senderPseudo: "Cheater",
+      tag: "Secret",
+      read: false,
+      favorite: false,
+      revealedManually: true,
+      createdAt: ts,
+      updatedAt: ts,
+    })
+  );
+
+  // When Alice disables her link, visitor submissions are rejected
+  await assertSucceeds(
+    aliceDb.collection("users").doc(ALICE_UID).update({
+      linkActive: false,
+      updatedAt: new Date(Date.now() - 500),
+    })
+  );
+
+  await assertFails(
+    unauthDb.collection("users").doc(ALICE_UID).collection("messages").doc("vis_msg_paused").set({
+      userId: ALICE_UID,
+      messageText: "Should be blocked",
+      receivedAtMillis: now,
+      unlockAtMillis: now + 345600000,
+      senderPseudo: "Visiteur",
+      tag: "Secret",
+      read: false,
+      favorite: false,
+      revealedManually: false,
+      createdAt: ts,
+      updatedAt: ts,
+    })
+  );
+});
+

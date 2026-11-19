@@ -42,6 +42,17 @@ service cloud.firestore {
              data.updatedAt is timestamp && data.updatedAt <= request.time;
     }
 
+    function isValidPublicLink(data, slug) {
+      return data.slug is string && data.slug == slug &&
+             data.ownerId is string && isValidId(data.ownerId) &&
+             data.username is string && data.username.size() >= 2 && data.username.size() <= 40 &&
+             (!('profilePicUri' in data) || (data.profilePicUri is string && data.profilePicUri.size() <= 500)) &&
+             (!('bio' in data) || (data.bio is string && data.bio.size() <= 300)) &&
+             data.linkActive is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
     function isValidSessionLog(data, userId) {
       return data.userId is string && data.userId == userId &&
              data.username is string && data.username.size() >= 1 && data.username.size() <= 40 &&
@@ -69,6 +80,28 @@ service cloud.firestore {
              data.revealedManually is bool &&
              data.createdAt is timestamp && data.createdAt <= request.time &&
              data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // Non-PII public link lookup collection (split from /users/{userId})
+    match /publicLinks/{slug} {
+      allow get: if isValidId(slug);
+      allow list: if false;
+
+      allow create: if isValidId(slug) &&
+                       isOwner(incoming().ownerId) &&
+                       incoming().keys().hasAll(['slug', 'ownerId', 'username', 'linkActive', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['slug', 'ownerId', 'username', 'profilePicUri', 'bio', 'linkActive', 'createdAt', 'updatedAt']) &&
+                       isValidPublicLink(incoming(), slug);
+
+      allow update: if isValidId(slug) &&
+                       isOwner(existing().ownerId) &&
+                       isValidPublicLink(incoming(), slug) &&
+                       incoming().slug == existing().slug &&
+                       incoming().ownerId == existing().ownerId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['username', 'profilePicUri', 'bio', 'linkActive', 'updatedAt']);
+
+      allow delete: if isValidId(slug) && isOwner(existing().ownerId);
     }
 
     // Owner-only user profile documents (contains PII email)
@@ -119,17 +152,27 @@ service cloud.firestore {
         allow delete: if isValidId(userId) && isValidId(sessionId) && isOwner(userId);
       }
 
-      // User-scoped anonymous messages
+      // User-scoped anonymous messages (public create dropbox when linkActive == true; owner-only read/update/delete)
       match /messages/{messageId} {
         allow get: if isValidId(userId) && isValidId(messageId) && isOwner(userId);
         allow list: if isValidId(userId) && isOwner(userId);
 
         allow create: if isValidId(userId) &&
                          isValidId(messageId) &&
-                         isOwner(userId) &&
                          incoming().keys().hasAll(['userId', 'messageText', 'receivedAtMillis', 'unlockAtMillis', 'senderPseudo', 'tag', 'read', 'favorite', 'revealedManually', 'createdAt', 'updatedAt']) &&
                          incoming().keys().hasOnly(['userId', 'messageText', 'receivedAtMillis', 'unlockAtMillis', 'senderPseudo', 'senderCoordinates', 'senderDeviceInfo', 'tag', 'read', 'favorite', 'revealedManually', 'createdAt', 'updatedAt']) &&
-                         isValidAnonymousMessage(incoming(), userId);
+                         isValidAnonymousMessage(incoming(), userId) &&
+                         (
+                           isOwner(userId) ||
+                           (
+                             incoming().read == false &&
+                             incoming().favorite == false &&
+                             incoming().revealedManually == false &&
+                             incoming().unlockAtMillis >= incoming().receivedAtMillis + 345600000 &&
+                             exists(/databases/$(database)/documents/users/$(userId)) &&
+                             get(/databases/$(database)/documents/users/$(userId)).data.linkActive == true
+                           )
+                         );
 
         allow update: if isValidId(userId) &&
                          isValidId(messageId) &&

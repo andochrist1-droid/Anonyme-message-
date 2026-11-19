@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Envoyer un message secret | SecretLink</title>
-  <meta name="description" content="Plateforme de messages anonymes. Posez une question, faites une confession ou partagez un secret en toute liberté. Vos coordonnées restent scellées 4 jours." />
+  <meta name="description" content="Plateforme de messages anonymes synchronisée sur Cloud Firestore. Vos coordonnées restent scellées 4 jours (96h)." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -12,7 +12,6 @@
     :root {
       --bg-color: #F8FAFF;
       --surface-color: #FFFFFF;
-      --surface-variant: #F0F4F9;
       --primary: #005FAF;
       --primary-dark: #004582;
       --primary-container: #D1E4FF;
@@ -24,15 +23,14 @@
       --success-bg: #ECFDF5;
       --success-border: #A7F3D0;
       --success-text: #065F46;
-      --error-bg: #FEE2E2;
-      --error-border: #FECACA;
-      --error-text: #BA1A1A;
+      --warn-bg: #FEF3C7;
+      --warn-border: #FDE68A;
+      --warn-text: #92400E;
       --radius-sm: 12px;
       --radius-md: 18px;
       --radius-lg: 28px;
       --shadow-sm: 0 2px 8px rgba(0, 30, 60, 0.04);
-      --shadow-md: 0 8px 24px rgba(0, 30, 60, 0.08);
-      --transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
+      --transition: all 0.22s cubic-bezier(0.2, 0, 0, 1);
     }
 
     * {
@@ -44,7 +42,7 @@
 
     body {
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      background-color: var(--bg-color);
+      background: linear-gradient(180deg, #F0F6FF 0%, var(--bg-color) 40%, #EBF3FF 100%);
       color: var(--text-primary);
       min-height: 100vh;
       display: flex;
@@ -61,7 +59,6 @@
       gap: 16px;
     }
 
-    /* Top Branding Bar */
     .top-bar {
       display: flex;
       justify-content: space-between;
@@ -82,14 +79,13 @@
       font-weight: 800;
       background: var(--primary-container);
       color: var(--on-primary-container);
-      padding: 4px 10px;
+      padding: 5px 10px;
       border-radius: var(--radius-sm);
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
     }
 
-    /* Bento Cards */
     .bento-card {
       background: var(--surface-color);
       border-radius: var(--radius-lg);
@@ -102,7 +98,6 @@
       transition: var(--transition);
     }
 
-    /* Recipient Profile Hero */
     .profile-hero {
       background: linear-gradient(135deg, #004582 0%, #005FAF 60%, #1565C0 100%);
       color: white;
@@ -119,14 +114,23 @@
       width: 68px;
       height: 68px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.2);
+      background: linear-gradient(135deg, #0062FF, #00D2FF);
       border: 2px solid rgba(255, 255, 255, 0.85);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 32px;
+      font-size: 28px;
+      font-weight: 800;
+      color: white;
       flex-shrink: 0;
+      overflow: hidden;
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    }
+    .avatar-circle img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
     .profile-info {
       flex: 1;
@@ -167,7 +171,6 @@
       color: var(--primary);
     }
 
-    /* Message Type Selector (Confession, Question, Secret, etc.) */
     .type-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -194,9 +197,7 @@
       gap: 4px;
       transition: var(--transition);
     }
-    .type-btn .emoji {
-      font-size: 18px;
-    }
+    .type-btn .emoji { font-size: 18px; }
     .type-btn:hover {
       border-color: var(--primary);
       background: #F0F6FF;
@@ -205,10 +206,8 @@
       border-color: var(--primary);
       background: var(--primary-container);
       color: var(--on-primary-container);
-      box-shadow: var(--shadow-sm);
     }
 
-    /* Form Fields */
     .form-group {
       display: flex;
       flex-direction: column;
@@ -249,7 +248,6 @@
       line-height: 1.5;
     }
 
-    /* Sealed Identity Box */
     .sealed-box {
       background: #F8FAFF;
       border: 1.5px dashed var(--border);
@@ -275,13 +273,13 @@
       line-height: 1.45;
     }
 
-    /* Buttons */
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 14px 20px;
+      min-height: 48px;
+      padding: 12px 20px;
       border-radius: var(--radius-md);
       font-family: inherit;
       font-size: 14px;
@@ -291,14 +289,17 @@
       transition: var(--transition);
       text-decoration: none;
     }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
     .btn-primary {
       background: var(--primary);
       color: white;
       box-shadow: 0 4px 14px rgba(0, 95, 175, 0.25);
     }
-    .btn-primary:hover {
+    .btn-primary:hover:not(:disabled) {
       background: var(--primary-dark);
-      transform: translateY(-1px);
     }
     .btn-outlined {
       background: transparent;
@@ -311,7 +312,6 @@
       background: #F0F6FF;
     }
 
-    /* Bento 2 Columns Info */
     .bento-grid-2 {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -326,22 +326,22 @@
       flex-direction: column;
       gap: 4px;
     }
-    .info-tile .icon {
-      font-size: 20px;
-      margin-bottom: 2px;
-    }
-    .info-tile .title {
-      font-size: 12px;
-      font-weight: 800;
-      color: var(--text-primary);
-    }
-    .info-tile .sub {
-      font-size: 11px;
-      color: var(--text-secondary);
-      line-height: 1.35;
+    .info-tile .icon { font-size: 20px; margin-bottom: 2px; }
+    .info-tile .title { font-size: 12px; font-weight: 800; color: var(--text-primary); }
+    .info-tile .sub { font-size: 11px; color: var(--text-secondary); line-height: 1.35; }
+
+    .status-notice {
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      background: var(--warn-bg);
+      border: 1px solid var(--warn-border);
+      color: var(--warn-text);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.45;
+      display: none;
     }
 
-    /* Success Card View */
     .success-card {
       display: none;
       text-align: center;
@@ -363,33 +363,34 @@
       font-size: 32px;
     }
 
-    /* Toast */
     .toast {
       position: fixed;
       top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
       background: #001D36;
       color: white;
       padding: 12px 20px;
       border-radius: 20px;
       font-size: 13px;
       font-weight: 600;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
       z-index: 2000;
       display: none;
       align-items: center;
       gap: 8px;
+      max-width: 90vw;
+      text-align: center;
     }
   </style>
 </head>
 <body>
 
-  <!-- Toast Notification -->
   <div id="toast" class="toast">
     <span id="toast-text">Message transmis</span>
   </div>
 
   <div class="container">
-    <!-- Top Branding -->
     <header class="top-bar">
       <a href="index.html" class="brand-logo">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -399,23 +400,25 @@
         <span>SecretLink</span>
       </a>
       <div class="brand-badge">
-        <span>🔒 96H SCIELLÉ</span>
+        <span>🔒 96H SCELLÉ • FIRESTORE</span>
       </div>
     </header>
 
     <!-- Recipient Profile Hero -->
     <section class="bento-card profile-hero">
       <div class="profile-row">
-        <div class="avatar-circle" id="recipient-avatar">💬</div>
+        <div class="avatar-circle" id="recipient-avatar">S</div>
         <div class="profile-info">
-          <span class="recipient-tag">Lien Personnel Dédié</span>
-          <h1 class="recipient-name" id="recipient-display-name">@utilisateur</h1>
+          <span class="recipient-tag">Lien Personnel Cloud Firestore</span>
+          <h1 class="recipient-name" id="recipient-display-name">Chargement...</h1>
           <p class="recipient-bio" id="recipient-bio">
-            Posez-moi une question anonyme, faites-moi une confession ou dites-moi un secret en toute liberté !
+            Laissez-moi un message anonyme en toute liberté !
           </p>
         </div>
       </div>
     </section>
+
+    <div id="link-status-notice" class="status-notice"></div>
 
     <!-- Send Form Section -->
     <main id="send-form-card" class="bento-card">
@@ -424,48 +427,45 @@
         <span style="color: var(--text-muted); font-size: 10px;">Scellé 4 jours</span>
       </div>
 
-      <!-- Quick Category Buttons -->
+      <!-- Categories matching Android & Firestore Rules -->
       <div class="form-group">
         <label class="form-label">
           <span>Type de message</span>
           <span class="optional">Sélectionnez une catégorie</span>
         </label>
-        <div class="type-grid">
-          <button type="button" class="type-btn active" onclick="selectType('confession', 'Confession', this)">
-            <span class="emoji">🤫</span>
-            <span>Confession</span>
-          </button>
-          <button type="button" class="type-btn" onclick="selectType('question', 'Question', this)">
-            <span class="emoji">❓</span>
-            <span>Question</span>
-          </button>
-          <button type="button" class="type-btn" onclick="selectType('secret', 'Secret', this)">
+        <div class="type-grid" id="tag-selector-grid">
+          <button type="button" class="type-btn active" data-tag="Secret">
             <span class="emoji">🗝️</span>
             <span>Secret</span>
           </button>
-          <button type="button" class="type-btn" onclick="selectType('compliment', 'Compliment', this)">
+          <button type="button" class="type-btn" data-tag="Compliment">
             <span class="emoji">💖</span>
             <span>Compliment</span>
+          </button>
+          <button type="button" class="type-btn" data-tag="Vérité">
+            <span class="emoji">⚡</span>
+            <span>Vérité</span>
+          </button>
+          <button type="button" class="type-btn" data-tag="Question">
+            <span class="emoji">❓</span>
+            <span>Question</span>
           </button>
         </div>
       </div>
 
-      <!-- Message Content -->
       <div class="form-group">
         <label class="form-label" id="label-message-text">
-          <span>Votre confession secrète *</span>
-          <span class="optional" id="char-counter">0/500</span>
+          <span>Votre secret scellé *</span>
+          <span class="optional" id="char-counter">0/1000</span>
         </label>
         <textarea
           id="input-message-text"
           class="form-textarea"
           placeholder="Écrivez votre message secret ici... Le destinataire pourra le lire immédiatement en toute confidentialité."
-          maxlength="500"
-          oninput="updateCharCount()"
+          maxlength="1000"
         ></textarea>
       </div>
 
-      <!-- Sealed Sender Identity (Revealed in 4 days) -->
       <div class="sealed-box">
         <div class="sealed-header">
           <span>Vos Coordonnées (Scellées 4 jours)</span>
@@ -480,13 +480,7 @@
             <span>Votre prénom ou pseudonyme réel</span>
             <span class="optional">Optionnel</span>
           </label>
-          <input
-            type="text"
-            id="input-sender-name"
-            class="form-input"
-            placeholder="Ex: Alexandre, Julie, ton voisin..."
-            autocomplete="off"
-          />
+          <input type="text" id="input-sender-name" class="form-input" maxlength="80" placeholder="Ex: Julie, ton voisin..." autocomplete="off" />
         </div>
 
         <div class="form-group">
@@ -494,13 +488,7 @@
             <span>Coordonnées de contact (Instagram, Email, N°...)</span>
             <span class="optional">Optionnel</span>
           </label>
-          <input
-            type="text"
-            id="input-sender-contact"
-            class="form-input"
-            placeholder="Ex: @mon_insta ou 06 12 34 56 78"
-            autocomplete="off"
-          />
+          <input type="text" id="input-sender-contact" class="form-input" maxlength="140" placeholder="Ex: @mon_insta ou 06 12 34 56 78" autocomplete="off" />
         </div>
 
         <div class="form-group">
@@ -508,18 +496,11 @@
             <span>Indice personnel</span>
             <span class="optional">Optionnel</span>
           </label>
-          <input
-            type="text"
-            id="input-sender-hint"
-            class="form-input"
-            placeholder="Ex: On s'est croisés à la fac..."
-            autocomplete="off"
-          />
+          <input type="text" id="input-sender-hint" class="form-input" maxlength="80" placeholder="Ex: On s'est croisés hier..." autocomplete="off" />
         </div>
       </div>
 
-      <!-- Submit Action -->
-      <button class="btn btn-primary" onclick="submitMessage()" style="width: 100%;">
+      <button id="submit-message-btn" class="btn btn-primary" style="width: 100%;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="22" y1="2" x2="11" y2="13"></line>
           <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
@@ -528,27 +509,25 @@
       </button>
     </main>
 
-    <!-- Success Confirmation State (shown after submission) -->
+    <!-- Success Card -->
     <section id="success-card" class="bento-card success-card">
       <div class="success-circle">✓</div>
       <div>
         <h2 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px;">Message scellé et transmis !</h2>
         <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; max-width: 380px;">
-          Votre message a été envoyé en toute discrétion à <strong id="success-recipient-name">@destinataire</strong>. Vos coordonnées sont désormais scellées et seront révélées dans exactement 4 jours.
+          Votre message a été enregistré sur Cloud Firestore pour <strong id="success-recipient-name">@destinataire</strong>. Vos coordonnées restent scellées 4 jours.
         </p>
       </div>
-
-      <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 10px;">
-        <button class="btn btn-primary" onclick="resetFormForNewMessage()" style="width: 100%;">
+      <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 8px;">
+        <button id="send-another-btn" class="btn btn-primary" style="width: 100%;">
           Envoyer un autre message
         </button>
         <a href="index.html" class="btn btn-outlined" style="width: 100%;">
-          Créer mon propre lien secret
+          Ouvrir mon espace SecretLink
         </a>
       </div>
     </section>
 
-    <!-- Bento Security Explanations -->
     <section class="bento-grid-2">
       <div class="info-tile">
         <div class="icon">🛡️</div>
@@ -562,13 +541,12 @@
       </div>
     </section>
 
-    <!-- Create Own Link Call to Action -->
     <section class="bento-card" style="text-align: center; padding: 20px;">
       <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
-        Envie de recevoir vous aussi des questions secrètes ?
+        Envie de recevoir vous aussi des messages secrets ?
       </div>
       <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 14px;">
-        Créez gratuitement votre propre lien personnalisé en 30 secondes.
+        Connectez-vous avec Google pour obtenir votre lien personnel synchronisé sur tous vos appareils.
       </div>
       <a href="index.html" class="btn btn-outlined" style="width: 100%;">
         Obtenir mon lien personnel
@@ -576,241 +554,226 @@
     </section>
   </div>
 
-  <!-- FIREBASE SDK v9 (Compat for seamless browser integration) -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <!-- FIREBASE JS SDK v11 MODULAR (Named Cloud Firestore) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+    import {
+      initializeFirestore,
+      collection,
+      doc,
+      getDoc,
+      addDoc,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
-  <script>
-    const STORAGE_KEY_USERS = "secretlink_registered_users";
-    const STORAGE_KEY_USERS_OLD = "secretlink_users_db";
-    const STORAGE_KEY_MSGS_PREFIX = "secretlink_msgs_";
+    const FOUR_DAYS_MS = 4 * 24 * 60 * 60 * 1000;
+    const FIRESTORE_DATABASE_ID = "ai-studio-android-messages-d9b78de9-0fcf-4017-a2a8-daa92b91d8cd";
 
-    // Firebase Configuration
     const firebaseConfig = {
-      apiKey: "AIzaSyDnoI2H73ihZ2FwAYxj6eJ7qLH_s9f2Q6U",
-      authDomain: "anonyme-message.firebaseapp.com",
-      databaseURL: "https://anonyme-message-default-rtdb.firebaseio.com",
-      projectId: "anonyme-message",
-      storageBucket: "anonyme-message.firebasestorage.app",
-      messagingSenderId: "196227733380",
-      appId: "1:196227733380:web:1661b1b27a8bd204316fd1",
-      measurementId: "G-NFXTBVNDCQ"
+      apiKey: "AIzaSyA8ei0i3VRkG33IRKeYiW0trKydB3qGr2M",
+      authDomain: "gen-lang-client-0373560860.firebaseapp.com",
+      projectId: "gen-lang-client-0373560860",
+      storageBucket: "gen-lang-client-0373560860.firebasestorage.app",
+      messagingSenderId: "687834440358"
     };
 
-    let firebaseApp = null;
-    let firebaseDb = null;
+    const AVATAR_PRESETS = {
+      preset_1: ["#0062FF", "#00D2FF"],
+      preset_2: ["#1D4ED8", "#38BDF8"],
+      preset_3: ["#0369A1", "#67E8F9"],
+      preset_4: ["#0F172A", "#2563EB"],
+      preset_5: ["#0284C7", "#93C5FD"]
+    };
 
-    try {
-      if (typeof firebase !== "undefined") {
-        firebaseApp = firebase.initializeApp(firebaseConfig);
-        firebaseDb = firebase.database();
-      }
-    } catch (e) {
-      console.warn("Firebase send page:", e);
-    }
+    const app = initializeApp(firebaseConfig);
+    const db = initializeFirestore(app, {}, FIRESTORE_DATABASE_ID);
 
-    function sanitizeKey(key) {
-      return (key || "").replace(/[.#$\[\]\/]/g, "_").toLowerCase();
-    }
-
-    let currentSelectedType = "confession";
-    let recipientUsername = "";
+    let selectedTag = "Secret";
+    let recipientLink = null;
     let recipientSlug = "";
-
-    async function initSendPage() {
-      const urlParams = new URLSearchParams(window.location.search);
-      recipientSlug = urlParams.get('to') || urlParams.get('u') || urlParams.get('user') || "";
-
-      if (!recipientSlug) {
-        const pathParts = window.location.pathname.split('/');
-        const uIdx = pathParts.indexOf('u');
-        if (uIdx !== -1 && pathParts[uIdx + 1]) {
-          recipientSlug = pathParts[uIdx + 1];
-        }
-      }
-
-      recipientSlug = recipientSlug.trim();
-
-      // Retrieve registered users from local storage first
-      let users = [];
-      try {
-        users = JSON.parse(localStorage.getItem(STORAGE_KEY_USERS)) ||
-                JSON.parse(localStorage.getItem(STORAGE_KEY_USERS_OLD)) || [];
-      } catch(e) { users = []; }
-
-      // Try fetching recipient from Firebase Cloud Database directly
-      if (firebaseDb && recipientSlug) {
-        try {
-          const sKey = sanitizeKey(recipientSlug);
-          const snap = await firebaseDb.ref(`users/${sKey}`).once("value");
-          if (snap.exists()) {
-            const cloudUser = snap.val();
-            if (cloudUser) {
-              const existingIdx = users.findIndex(u => u.username && u.username.toLowerCase() === cloudUser.username.toLowerCase());
-              if (existingIdx >= 0) users[existingIdx] = cloudUser;
-              else users.push(cloudUser);
-              localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
-            }
-          }
-        } catch(e) {
-          console.warn("Error fetching recipient from cloud:", e);
-        }
-      }
-
-      // Match user by username or link slug
-      const foundUser = users.find(u =>
-        (u.username && u.username.toLowerCase() === recipientSlug.toLowerCase()) ||
-        (u.slug && u.slug.toLowerCase() === recipientSlug.toLowerCase()) ||
-        (u.uniqueLinkSlug && u.uniqueLinkSlug.toLowerCase() === recipientSlug.toLowerCase())
-      );
-
-      if (foundUser) {
-        recipientUsername = foundUser.username;
-        document.getElementById("recipient-display-name").textContent = foundUser.username;
-        document.getElementById("recipient-avatar").textContent = foundUser.avatar || "💬";
-        if (foundUser.bio && foundUser.bio.trim()) {
-          document.getElementById("recipient-bio").textContent = foundUser.bio;
-        }
-      } else if (recipientSlug) {
-        let cleanName = recipientSlug;
-        if (cleanName.includes("_")) {
-          const parts = cleanName.split("_");
-          if (parts[0]) cleanName = parts[0];
-        }
-        cleanName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
-        recipientUsername = recipientSlug;
-        document.getElementById("recipient-display-name").textContent = cleanName;
-        document.getElementById("recipient-avatar").textContent = "💬";
-      } else {
-        recipientUsername = "anonyme";
-        document.getElementById("recipient-display-name").textContent = "Messagerie Anonyme";
-        document.getElementById("recipient-bio").textContent = "Posez une question anonyme ou partagez une confession.";
-      }
-
-      document.title = `Envoyer un message à @${recipientUsername} | SecretLink`;
-    }
-
-    function selectType(typeKey, typeLabel, btnElement) {
-      currentSelectedType = typeKey;
-      document.querySelectorAll(".type-btn").forEach(btn => btn.classList.remove("active"));
-      btnElement.classList.add("active");
-
-      const labelText = document.getElementById("label-message-text");
-      const textarea = document.getElementById("input-message-text");
-
-      if (typeKey === 'confession') {
-        labelText.querySelector("span:first-child").textContent = "Votre confession secrète *";
-        textarea.placeholder = "Avouez quelque chose que vous n'avez jamais osé dire en face...";
-      } else if (typeKey === 'question') {
-        labelText.querySelector("span:first-child").textContent = "Votre question anonyme *";
-        textarea.placeholder = "Posez une question indiscrète ou curieuse...";
-      } else if (typeKey === 'secret') {
-        labelText.querySelector("span:first-child").textContent = "Votre secret scellé *";
-        textarea.placeholder = "Partagez un secret bien gardé...";
-      } else if (typeKey === 'compliment') {
-        labelText.querySelector("span:first-child").textContent = "Votre compliment sincère *";
-        textarea.placeholder = "Dites quelque chose de gentil et valorisant...";
-      }
-    }
-
-    function updateCharCount() {
-      const textarea = document.getElementById("input-message-text");
-      document.getElementById("char-counter").textContent = `${textarea.value.length}/500`;
-    }
-
-    async function submitMessage() {
-      const content = document.getElementById("input-message-text").value.trim();
-      const senderName = document.getElementById("input-sender-name").value.trim();
-      const senderContact = document.getElementById("input-sender-contact").value.trim();
-      const senderHint = document.getElementById("input-sender-hint").value.trim();
-
-      if (!content) {
-        showToast("Veuillez saisir votre message avant d'envoyer.");
-        document.getElementById("input-message-text").focus();
-        return;
-      }
-
-      const newMsg = {
-        id: "msg_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-        tag: currentSelectedType,
-        content: content,
-        senderName: senderName || "Anonyme",
-        senderContact: senderContact || "Non communiqué",
-        senderHint: senderHint || "Aucun indice",
-        receivedAt: Date.now(),
-        isRead: false,
-        isFavorite: false
-      };
-
-      // Target recipient key to isolate messages per pseudonym
-      const targetSlug = (recipientUsername || "anonyme").toLowerCase();
-      const msgsKey = STORAGE_KEY_MSGS_PREFIX + targetSlug;
-
-      let recipientMsgs = [];
-      try {
-        recipientMsgs = JSON.parse(localStorage.getItem(msgsKey)) || [];
-      } catch(e) { recipientMsgs = []; }
-
-      recipientMsgs.unshift(newMsg);
-      localStorage.setItem(msgsKey, JSON.stringify(recipientMsgs));
-
-      // Synchronize directly to Firebase Cloud Database for instant multi-device reception!
-      if (firebaseDb) {
-        try {
-          const uKey = sanitizeKey(targetSlug);
-          // Fetch existing cloud messages first to prepend safely
-          const cloudSnap = await firebaseDb.ref(`user_messages/${uKey}`).once("value");
-          let cloudList = [];
-          if (cloudSnap.exists()) {
-            const v = cloudSnap.val();
-            cloudList = Array.isArray(v) ? v : Object.values(v);
-          }
-          cloudList.unshift(newMsg);
-          await firebaseDb.ref(`user_messages/${uKey}`).set(cloudList);
-        } catch (e) {
-          console.warn("Erreur sauvegarde cloud du message:", e);
-        }
-      }
-
-      // Also store by original slug if different (to prevent mixing)
-      if (recipientSlug && recipientSlug.toLowerCase() !== targetSlug) {
-        const slugKey = STORAGE_KEY_MSGS_PREFIX + recipientSlug.toLowerCase();
-        let slugMsgs = [];
-        try {
-          slugMsgs = JSON.parse(localStorage.getItem(slugKey)) || [];
-        } catch(e) { slugMsgs = []; }
-        slugMsgs.unshift(newMsg);
-        localStorage.setItem(slugKey, JSON.stringify(slugMsgs));
-      }
-
-      // Show success view
-      document.getElementById("send-form-card").style.display = "none";
-      document.getElementById("success-card").style.display = "flex";
-      document.getElementById("success-recipient-name").textContent = `@${recipientUsername}`;
-
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      showToast("Message scellé envoyé avec succès !");
-    }
-
-    function resetFormForNewMessage() {
-      document.getElementById("input-message-text").value = "";
-      document.getElementById("input-sender-name").value = "";
-      document.getElementById("input-sender-contact").value = "";
-      document.getElementById("input-sender-hint").value = "";
-      updateCharCount();
-
-      document.getElementById("send-form-card").style.display = "flex";
-      document.getElementById("success-card").style.display = "none";
-    }
 
     function showToast(text) {
       const toast = document.getElementById("toast");
       document.getElementById("toast-text").textContent = text;
       toast.style.display = "flex";
-      setTimeout(() => {
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => {
         toast.style.display = "none";
       }, 3000);
     }
+
+    function showLinkNotice(text) {
+      const notice = document.getElementById("link-status-notice");
+      notice.textContent = text;
+      notice.style.display = "block";
+    }
+
+    function renderAvatar(el, uriOrPreset, username) {
+      const val = String(uriOrPreset || "preset_1");
+      const letter = (username || "S").trim().charAt(0).toUpperCase() || "S";
+      const isWebUrl = val.startsWith("http://") || val.startsWith("https://") || val.startsWith("data:image/");
+      if (isWebUrl) {
+        el.innerHTML = "";
+        const img = document.createElement("img");
+        img.src = val;
+        img.alt = username || "Avatar";
+        img.referrerPolicy = "no-referrer";
+        img.onerror = () => {
+          el.innerHTML = "";
+          el.textContent = letter;
+        };
+        el.appendChild(img);
+      } else {
+        const colors = AVATAR_PRESETS[val] || AVATAR_PRESETS.preset_1;
+        el.innerHTML = "";
+        el.style.background = `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`;
+        el.textContent = letter;
+      }
+    }
+
+    function getDeviceLabel() {
+      const ua = navigator.userAgent || "";
+      if (/Android/i.test(ua)) return "Navigateur Mobile Android";
+      if (/iPhone|iPad|iPod/i.test(ua)) return "Navigateur Mobile iOS";
+      if (/Mobile/i.test(ua)) return "Navigateur Mobile";
+      return "Navigateur Web";
+    }
+
+    async function initSendPage() {
+      const urlParams = new URLSearchParams(window.location.search);
+      recipientSlug = (urlParams.get("to") || urlParams.get("u") || urlParams.get("user") || "").trim();
+
+      if (!recipientSlug || !/^[a-zA-Z0-9_\-]+$/.test(recipientSlug)) {
+        document.getElementById("recipient-display-name").textContent = "Lien introuvable";
+        document.getElementById("recipient-bio").textContent = "Aucun destinataire valide n'est spécifié dans cette URL.";
+        document.getElementById("submit-message-btn").disabled = true;
+        showLinkNotice("Veuillez utiliser un lien personnel valide généré par l'application ou le site SecretLink.");
+        return;
+      }
+
+      try {
+        const snap = await getDoc(doc(db, "publicLinks", recipientSlug));
+        if (!snap.exists()) {
+          document.getElementById("recipient-display-name").textContent = `@${recipientSlug}`;
+          document.getElementById("recipient-bio").textContent = "Ce lien personnel est introuvable ou n'a pas encore été activé.";
+          document.getElementById("submit-message-btn").disabled = true;
+          showLinkNotice("Destinataire introuvable dans Cloud Firestore. Demandez au destinataire de se connecter une fois pour activer son lien.");
+          return;
+        }
+
+        recipientLink = snap.data();
+        document.getElementById("recipient-display-name").textContent = recipientLink.username || recipientSlug;
+        document.getElementById("recipient-bio").textContent =
+          (recipientLink.bio || "").trim() || "Laissez-moi un message anonyme en toute liberté !";
+        renderAvatar(document.getElementById("recipient-avatar"), recipientLink.profilePicUri, recipientLink.username);
+        document.title = `Envoyer un message à ${recipientLink.username || recipientSlug} | SecretLink`;
+
+        if (recipientLink.linkActive === false) {
+          document.getElementById("submit-message-btn").disabled = true;
+          showLinkNotice("Ce destinataire a temporairement mis en pause la réception de nouveaux messages anonymes.");
+        }
+      } catch (err) {
+        console.error("Failed to load recipient public link:", err);
+        document.getElementById("recipient-display-name").textContent = "Erreur Cloud Firestore";
+        document.getElementById("submit-message-btn").disabled = true;
+        showLinkNotice("Impossible de contacter Cloud Firestore : " + (err.message || err));
+      }
+    }
+
+    document.querySelectorAll("#tag-selector-grid .type-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        selectedTag = btn.dataset.tag;
+        document.querySelectorAll("#tag-selector-grid .type-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        const labelEl = document.getElementById("label-message-text").querySelector("span:first-child");
+        const textarea = document.getElementById("input-message-text");
+        if (selectedTag === "Secret") {
+          labelEl.textContent = "Votre secret scellé *";
+          textarea.placeholder = "Partagez un secret bien gardé...";
+        } else if (selectedTag === "Compliment") {
+          labelEl.textContent = "Votre compliment sincère *";
+          textarea.placeholder = "Dites quelque chose de gentil et valorisant...";
+        } else if (selectedTag === "Vérité") {
+          labelEl.textContent = "Votre vérité sans filtre *";
+          textarea.placeholder = "Avouez quelque chose que vous n'avez jamais osé dire en face...";
+        } else {
+          labelEl.textContent = "Votre question anonyme *";
+          textarea.placeholder = "Posez une question indiscrète ou curieuse...";
+        }
+      });
+    });
+
+    document.getElementById("input-message-text").addEventListener("input", (e) => {
+      document.getElementById("char-counter").textContent = `${e.target.value.length}/1000`;
+    });
+
+    document.getElementById("submit-message-btn").addEventListener("click", async () => {
+      if (!recipientLink || !recipientLink.ownerId) {
+        showToast("Destinataire introuvable.");
+        return;
+      }
+
+      const messageText = document.getElementById("input-message-text").value.trim();
+      const senderName = document.getElementById("input-sender-name").value.trim();
+      const senderContact = document.getElementById("input-sender-contact").value.trim();
+      const senderHint = document.getElementById("input-sender-hint").value.trim();
+
+      if (!messageText) {
+        showToast("Veuillez saisir votre message avant d'envoyer.");
+        document.getElementById("input-message-text").focus();
+        return;
+      }
+
+      const coordsParts = [];
+      if (senderContact) coordsParts.push(senderContact);
+      if (senderHint) coordsParts.push(`Indice : ${senderHint}`);
+      const senderCoordinates = coordsParts.join(" • ") || "Non renseigné par l'expéditeur";
+      const senderPseudo = senderName || "Anonyme mystère";
+
+      const btn = document.getElementById("submit-message-btn");
+      btn.disabled = true;
+
+      try {
+        const now = Math.floor(Date.now());
+        await addDoc(collection(db, "users", recipientLink.ownerId, "messages"), {
+          userId: recipientLink.ownerId,
+          messageText: messageText.slice(0, 1000),
+          receivedAtMillis: now,
+          unlockAtMillis: now + FOUR_DAYS_MS,
+          senderPseudo: senderPseudo.slice(0, 80),
+          senderCoordinates: senderCoordinates.slice(0, 200),
+          senderDeviceInfo: getDeviceLabel().slice(0, 150),
+          tag: selectedTag,
+          read: false,
+          favorite: false,
+          revealedManually: false,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+
+        document.getElementById("send-form-card").style.display = "none";
+        document.getElementById("success-card").style.display = "flex";
+        document.getElementById("success-recipient-name").textContent = recipientLink.username || recipientSlug;
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        showToast("Message scellé envoyé sur Cloud Firestore !");
+      } catch (err) {
+        console.error("Submit message error:", err);
+        showToast("Envoi refusé par les règles de sécurité : " + (err.message || err));
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById("send-another-btn").addEventListener("click", () => {
+      document.getElementById("input-message-text").value = "";
+      document.getElementById("input-sender-name").value = "";
+      document.getElementById("input-sender-contact").value = "";
+      document.getElementById("input-sender-hint").value = "";
+      document.getElementById("char-counter").textContent = "0/1000";
+      document.getElementById("send-form-card").style.display = "flex";
+      document.getElementById("success-card").style.display = "none";
+    });
 
     window.addEventListener("DOMContentLoaded", initSendPage);
   </script>

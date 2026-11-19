@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SecretLink - Messages Anonymes & Protocole 4 Jours</title>
-  <meta name="description" content="Plateforme de messages anonymes avec compte à rebours de 4 jours avant révélation d'identité." />
+  <title>Messages Anonymes — SecretLink Cloud Firestore</title>
+  <meta name="description" content="Messagerie anonyme chiffrée avec synchronisation Cloud Firestore temps réel et compte à rebours de 4 jours avant révélation." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -24,6 +24,10 @@
       --success-bg: #ECFDF5;
       --success-border: #A7F3D0;
       --success-text: #065F46;
+      --success-dot: #10B981;
+      --warn-bg: #FEF3C7;
+      --warn-border: #FDE68A;
+      --warn-text: #92400E;
       --error-bg: #FEE2E2;
       --error-border: #FECACA;
       --error-text: #BA1A1A;
@@ -32,7 +36,7 @@
       --radius-lg: 28px;
       --shadow-sm: 0 2px 8px rgba(0, 30, 60, 0.04);
       --shadow-md: 0 8px 24px rgba(0, 30, 60, 0.08);
-      --transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
+      --transition: all 0.22s cubic-bezier(0.2, 0, 0, 1);
     }
 
     * {
@@ -44,7 +48,7 @@
 
     body {
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      background-color: var(--bg-color);
+      background: linear-gradient(180deg, #F0F6FF 0%, var(--bg-color) 40%, #EBF3FF 100%);
       color: var(--text-primary);
       min-height: 100vh;
       display: flex;
@@ -52,38 +56,39 @@
       align-items: center;
     }
 
-    /* App Container */
     .app-container {
       width: 100%;
-      max-width: 520px;
-      padding: 16px 20px 100px 20px;
+      max-width: 540px;
+      padding: 16px 20px 104px 20px;
       display: flex;
       flex-direction: column;
       gap: 16px;
     }
 
     .app-container.no-nav {
-      padding-bottom: 30px;
+      padding-bottom: 40px;
     }
 
-    /* Top App Bar */
+    /* Top Bar */
     .top-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 4px;
-      margin-top: 6px;
+      gap: 8px;
+      padding: 8px 4px;
+      margin-top: 4px;
     }
-    .top-bar .brand {
+    .brand {
       display: flex;
       align-items: center;
       gap: 10px;
+      min-width: 0;
     }
-    .top-bar .logo-badge {
-      width: 38px;
-      height: 38px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    .logo-badge {
+      width: 40px;
+      height: 40px;
+      border-radius: 13px;
+      background: linear-gradient(135deg, var(--primary), #003FA3);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -91,34 +96,57 @@
       font-weight: 800;
       font-size: 18px;
       box-shadow: 0 4px 12px rgba(0, 95, 175, 0.25);
+      flex-shrink: 0;
     }
-    .top-bar h1 {
-      font-size: 19px;
+    .brand h1 {
+      font-size: 18px;
       font-weight: 800;
-      letter-spacing: -0.5px;
+      letter-spacing: -0.4px;
       color: var(--text-primary);
+      white-space: nowrap;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .top-pills {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
     }
     .status-pill {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: var(--primary-container);
-      color: var(--on-primary-container);
-      padding: 6px 12px;
+      background: #EEF2FF;
+      border: 1px solid #C7D2FE;
+      color: #3730A3;
+      padding: 5px 10px;
       border-radius: 20px;
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 700;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
     }
-    .status-pill-dot {
+    .status-pill-user {
+      background: var(--primary-container);
+      border-color: #B9D7FE;
+      color: var(--on-primary-container);
+      max-width: 130px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .status-dot {
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: #10B981;
-      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+      background: var(--success-dot);
+      flex-shrink: 0;
     }
 
-    /* Bento Cards Common */
+    /* Bento Card */
     .bento-card {
       background: var(--surface-color);
       border: 1px solid var(--border);
@@ -126,68 +154,85 @@
       padding: 20px;
       box-shadow: var(--shadow-sm);
       transition: var(--transition);
-      position: relative;
-      overflow: hidden;
-    }
-    .bento-card:hover {
-      box-shadow: var(--shadow-md);
     }
 
     .micro-header {
       font-size: 11px;
       font-weight: 800;
-      letter-spacing: 1.5px;
+      letter-spacing: 1.4px;
       text-transform: uppercase;
       color: var(--primary);
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 12px;
+      gap: 8px;
     }
 
-    /* Profile Header Card */
+    /* Profile Hero */
     .profile-hero {
-      background: linear-gradient(135deg, #004582 0%, #005FAF 50%, #1565C0 100%);
+      background: linear-gradient(135deg, #004582 0%, #005FAF 55%, #1565C0 100%);
       color: white;
       border: none;
-      padding: 22px;
-    }
-    .profile-hero .micro-header {
-      color: var(--primary-container);
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(0, 95, 175, 0.22);
     }
     .profile-row {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
     }
-    .avatar-wrapper {
-      position: relative;
-    }
-    .avatar {
-      width: 60px;
-      height: 60px;
+    .avatar-circle {
       border-radius: 50%;
-      background: white;
-      color: var(--primary);
+      border: 2px solid rgba(255, 255, 255, 0.85);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 26px;
+      color: white;
       font-weight: 800;
-      border: 2px solid rgba(255, 255, 255, 0.85);
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.14);
+      user-select: none;
+    }
+    .avatar-circle img {
+      width: 100%;
+      height: 100%;
       object-fit: cover;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-      cursor: pointer;
+      display: block;
+    }
+    .profile-info {
+      flex: 1;
+      min-width: 0;
     }
     .profile-info h2 {
-      font-size: 18px;
+      font-size: 19px;
       font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .profile-info p {
       font-size: 12px;
-      color: var(--primary-container);
+      color: #D1E4FF;
       margin-top: 3px;
       line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
     }
 
     /* Secret Link Box */
@@ -199,21 +244,23 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 16px;
+      gap: 10px;
+      margin-bottom: 14px;
     }
     .link-text {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 600;
       color: var(--primary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      margin-right: 10px;
+      min-width: 0;
+      flex: 1;
     }
     .icon-btn {
-      width: 36px;
-      height: 36px;
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
       background: var(--primary-container);
       color: var(--primary);
@@ -230,7 +277,7 @@
       transform: scale(1.05);
     }
 
-    /* Bento Dual Grid */
+    /* Bento Grid 2 */
     .bento-grid-2 {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -239,11 +286,10 @@
     .bento-tile {
       border-radius: var(--radius-lg);
       padding: 16px;
-      min-height: 130px;
+      min-height: 136px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      position: relative;
     }
     .bento-tile.pastel {
       background: var(--primary-container);
@@ -255,18 +301,18 @@
       color: white;
       border: 1px solid var(--primary-dark);
     }
-    .bento-tile .tile-metric {
-      font-size: 32px;
+    .tile-metric {
+      font-size: 30px;
       font-weight: 800;
       font-family: 'JetBrains Mono', monospace;
       line-height: 1;
     }
-    .bento-tile .tile-title {
+    .tile-title {
       font-size: 15px;
       font-weight: 700;
       line-height: 1.25;
     }
-    .bento-tile .tile-sub {
+    .tile-sub {
       font-size: 11px;
       opacity: 0.85;
       font-weight: 600;
@@ -279,24 +325,30 @@
     }
     .btn {
       flex: 1;
-      height: 48px;
+      min-height: 48px;
+      padding: 10px 14px;
       border-radius: var(--radius-md);
       font-family: inherit;
       font-size: 13px;
       font-weight: 700;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       cursor: pointer;
       transition: var(--transition);
       border: none;
+      text-decoration: none;
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
     .btn-primary {
       background: var(--primary);
       color: white;
     }
-    .btn-primary:hover {
+    .btn-primary:hover:not(:disabled) {
       background: var(--primary-dark);
       box-shadow: 0 4px 12px rgba(0, 95, 175, 0.25);
     }
@@ -305,16 +357,51 @@
       color: var(--primary);
       border: 1.5px solid var(--primary);
     }
-    .btn-outlined:hover {
+    .btn-outlined:hover:not(:disabled) {
       background: var(--primary-container);
+    }
+    .btn-subtle {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      min-height: 44px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .btn-subtle:hover:not(:disabled) {
+      background: var(--surface-variant);
+      border-color: var(--primary);
+      color: var(--primary);
     }
     .btn-danger {
       background: var(--error-bg);
       color: var(--error-text);
       border: 1px solid var(--error-border);
     }
-    .btn-danger:hover {
-      background: #fcd0d0;
+    .btn-danger:hover:not(:disabled) {
+      background: #fecaca;
+    }
+    .btn-danger-outlined {
+      background: transparent;
+      color: var(--error-text);
+      border: 1.5px solid var(--error-text);
+    }
+    .btn-danger-outlined:hover:not(:disabled) {
+      background: var(--error-bg);
+    }
+
+    /* Notice Banner */
+    .notice-banner {
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      color: var(--success-text);
+      border-radius: 20px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: 600;
     }
 
     /* Protocol Steps */
@@ -325,12 +412,13 @@
       padding: 14px 16px;
       background: var(--surface-color);
       border: 1px solid var(--border);
-      border-radius: 20px;
+      border-radius: 22px;
       margin-bottom: 10px;
+      box-shadow: var(--shadow-sm);
     }
     .step-num {
-      width: 38px;
-      height: 38px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       background: var(--primary-container);
       color: var(--primary);
@@ -342,15 +430,80 @@
       flex-shrink: 0;
     }
     .step-info h4 {
-      font-size: 13px;
+      font-size: 13.5px;
       font-weight: 700;
       color: var(--text-primary);
     }
     .step-info p {
-      font-size: 11.5px;
+      font-size: 12px;
       color: var(--text-secondary);
       margin-top: 2px;
-      line-height: 1.35;
+      line-height: 1.4;
+    }
+
+    /* Auth Screen */
+    .auth-hero-icon {
+      width: 82px;
+      height: 82px;
+      border-radius: 26px;
+      background: linear-gradient(135deg, var(--primary), #003FA3);
+      border: 2px solid white;
+      box-shadow: 0 10px 24px rgba(0, 95, 175, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      margin: 8px auto 16px auto;
+    }
+    .auth-sync-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--primary-container);
+      color: var(--primary);
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      margin-bottom: 16px;
+    }
+    .google-btn {
+      width: 100%;
+      height: 54px;
+      border-radius: 18px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      font-family: inherit;
+      font-size: 15.5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: 0 6px 18px rgba(0, 95, 175, 0.22);
+    }
+    .google-btn:hover:not(:disabled) {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+    .google-btn:disabled {
+      opacity: 0.7;
+      cursor: wait;
+    }
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2.5px solid rgba(255,255,255,0.35);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
     /* Filter Chips */
@@ -361,9 +514,7 @@
       padding-bottom: 4px;
       scrollbar-width: none;
     }
-    .filter-chips::-webkit-scrollbar {
-      display: none;
-    }
+    .filter-chips::-webkit-scrollbar { display: none; }
     .chip {
       padding: 8px 14px;
       border-radius: 20px;
@@ -375,14 +526,15 @@
       cursor: pointer;
       white-space: nowrap;
       transition: var(--transition);
+      min-height: 36px;
     }
     .chip.active {
-      background: var(--primary-container);
-      color: var(--on-primary-container);
+      background: var(--primary);
+      color: white;
       border-color: var(--primary);
     }
 
-    /* Message Item Card */
+    /* Message Cards */
     .message-card {
       background: var(--surface-color);
       border: 1px solid var(--border);
@@ -396,17 +548,18 @@
       gap: 12px;
     }
     .message-card.unread {
-      border-color: var(--primary);
+      border: 1.5px solid var(--primary);
       background: #FAFDFE;
     }
     .message-card:hover {
       box-shadow: var(--shadow-md);
-      transform: translateY(-2px);
+      transform: translateY(-1px);
     }
     .msg-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 8px;
     }
     .tag-badge {
       background: var(--primary-container);
@@ -417,6 +570,9 @@
       border-radius: var(--radius-sm);
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
     .msg-date {
       font-size: 11px;
@@ -424,11 +580,29 @@
       font-weight: 600;
     }
     .msg-content {
-      font-size: 14px;
+      font-size: 14.5px;
+      font-weight: 500;
       line-height: 1.5;
       color: var(--text-primary);
       word-break: break-word;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
+    .fav-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      padding: 4px;
+      border-radius: 50%;
+      color: var(--text-muted);
+      transition: transform 0.15s;
+    }
+    .fav-btn:hover { transform: scale(1.15); }
+    .fav-btn.is-fav { color: #EF4444; }
 
     /* Countdown Pill */
     .countdown-pill {
@@ -440,7 +614,8 @@
       background: #F8FAFF;
       border: 1px solid var(--border);
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 600;
+      color: var(--text-secondary);
     }
     .countdown-pill.unlocked {
       background: var(--success-bg);
@@ -449,83 +624,180 @@
     }
     .countdown-timer {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
+      font-size: 12.5px;
       color: var(--primary);
       font-weight: 800;
     }
     .countdown-pill.unlocked .countdown-timer {
-      color: var(--success-text);
+      color: #059669;
+      font-family: inherit;
     }
 
-    /* Auth Switch Tabs */
-    .auth-tab-bar {
-      display: flex;
-      background: #F0F4F9;
+    /* Sensitive Info Box */
+    .sensitive-box {
+      background: #F8FAFF;
+      border: 1px solid var(--border);
       border-radius: var(--radius-md);
-      padding: 4px;
-      margin-bottom: 20px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
-    .auth-tab-btn {
-      flex: 1;
-      border: none;
-      background: transparent;
-      padding: 10px;
-      border-radius: var(--radius-sm);
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 700;
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 11.5px;
+    }
+    .detail-label {
       color: var(--text-secondary);
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+    .detail-val {
+      color: var(--text-primary);
+      font-weight: 600;
+      text-align: right;
+      word-break: break-all;
+    }
+    .detail-val.mono {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+    }
+
+    /* Switch Toggle */
+    .switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+    }
+    .switch-divider {
+      height: 1px;
+      background: #F1F5F9;
+      width: 100%;
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 28px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #CBD5E1;
+      transition: .25s;
+      border-radius: 34px;
+    }
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .25s;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+    input:checked + .toggle-slider {
+      background-color: var(--primary);
+    }
+    input:checked + .toggle-slider:before {
+      transform: translateX(20px);
+    }
+
+    .setting-action-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 0;
+      cursor: pointer;
+      width: 100%;
+      background: transparent;
+      border: none;
+      text-align: left;
+      font-family: inherit;
+    }
+    .setting-action-row:hover {
+      opacity: 0.82;
+    }
+
+    /* Tag Pill Selector */
+    .tag-selector-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .tag-select-btn {
+      padding: 9px 4px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: #F1F5F9;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 600;
       cursor: pointer;
       transition: var(--transition);
     }
-    .auth-tab-btn.active {
-      background: white;
-      color: var(--primary);
-      box-shadow: var(--shadow-sm);
+    .tag-select-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+      font-weight: 700;
     }
 
-    /* Avatar Picker in Register */
-    .avatar-grid {
-      display: flex;
-      gap: 10px;
-      overflow-x: auto;
-      padding: 6px 2px;
-      scrollbar-width: none;
-    }
-    .avatar-option {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: #F8FAFF;
-      border: 2px solid var(--border);
+    /* Avatar Preset Picker */
+    .preset-picker-row {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
-      cursor: pointer;
-      flex-shrink: 0;
-      transition: var(--transition);
+      gap: 10px;
+      flex-wrap: wrap;
     }
-    .avatar-option.selected {
-      border-color: var(--primary);
-      background: var(--primary-container);
-      transform: scale(1.1);
+    .preset-dot {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 800;
+      font-size: 14px;
+      border: 2px solid #E2E8F0;
+      transition: transform 0.15s;
+    }
+    .preset-dot.selected {
+      border: 3px solid var(--primary);
+      transform: scale(1.12);
     }
 
     /* Modal Sheet */
     .modal-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 29, 54, 0.45);
+      inset: 0;
+      background: rgba(0, 29, 54, 0.48);
       backdrop-filter: blur(4px);
       display: none;
       align-items: center;
       justify-content: center;
       z-index: 1000;
-      padding: 20px;
+      padding: 18px;
     }
     .modal-overlay.active {
       display: flex;
@@ -538,14 +810,14 @@
       max-height: 90vh;
       overflow-y: auto;
       padding: 24px;
-      box-shadow: 0 16px 40px rgba(0, 30, 60, 0.2);
+      box-shadow: 0 18px 42px rgba(0, 30, 60, 0.22);
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      animation: modalSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      gap: 14px;
+      animation: modalSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
     @keyframes modalSlide {
-      from { transform: translateY(20px); opacity: 0; }
+      from { transform: translateY(16px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
 
@@ -554,51 +826,87 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
-      margin-bottom: 12px;
     }
     .form-label {
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 700;
       color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
-    .form-input, .form-textarea, .form-select {
+    .form-input, .form-textarea {
       width: 100%;
       padding: 12px 14px;
-      border-radius: var(--radius-md);
+      border-radius: 14px;
       border: 1.5px solid var(--border);
       font-family: inherit;
-      font-size: 14px;
+      font-size: 13.5px;
       color: var(--text-primary);
       background: #F8FAFF;
       transition: var(--transition);
       outline: none;
     }
-    .form-input:focus, .form-textarea:focus, .form-select:focus {
+    .form-input:focus, .form-textarea:focus {
       border-color: var(--primary);
       background: white;
       box-shadow: 0 0 0 3px rgba(0, 95, 175, 0.12);
     }
     .form-textarea {
       resize: vertical;
-      min-height: 80px;
+      min-height: 86px;
     }
 
-    /* Alert Banner */
     .alert-banner {
       background: var(--error-bg);
       border: 1px solid var(--error-border);
       color: var(--error-text);
-      padding: 10px 14px;
-      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      border-radius: 14px;
       font-size: 12px;
       font-weight: 600;
-      margin-bottom: 14px;
+      line-height: 1.45;
       display: none;
     }
+    .alert-banner.info {
+      background: #EFF6FF;
+      border-color: #BFDBFE;
+      color: #1E40AF;
+    }
+    .alert-banner.success {
+      background: var(--success-bg);
+      border-color: var(--success-border);
+      color: var(--success-text);
+    }
 
-    /* Bottom Navigation Bar */
+    .firebase-diag-card {
+      background: var(--surface-color);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .firebase-diag-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 11.5px;
+    }
+    .firebase-diag-label {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    .firebase-diag-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-align: right;
+      word-break: break-all;
+    }
+
+    /* Bottom Navigation */
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -606,17 +914,17 @@
       right: 0;
       background: var(--surface-color);
       border-top: 1px solid var(--border);
-      display: flex;
+      display: none;
       justify-content: center;
       z-index: 500;
       box-shadow: 0 -4px 16px rgba(0, 30, 60, 0.05);
     }
     .bottom-nav-inner {
       width: 100%;
-      max-width: 520px;
+      max-width: 540px;
       display: flex;
       justify-content: space-around;
-      padding: 8px 12px;
+      padding: 8px 8px;
     }
     .nav-item {
       display: flex;
@@ -627,10 +935,11 @@
       background: transparent;
       color: var(--text-secondary);
       cursor: pointer;
-      padding: 6px 12px;
-      border-radius: var(--radius-md);
+      padding: 6px 14px;
+      border-radius: 16px;
       transition: var(--transition);
       position: relative;
+      min-height: 48px;
     }
     .nav-item.active {
       color: var(--primary);
@@ -639,7 +948,6 @@
     .nav-item svg {
       width: 22px;
       height: 22px;
-      stroke-width: 2;
     }
     .nav-item span {
       font-size: 11px;
@@ -648,38 +956,38 @@
     .badge-counter {
       position: absolute;
       top: 4px;
-      right: 8px;
-      background: #BA1A1A;
+      right: 10px;
+      background: var(--primary);
       color: white;
-      font-size: 9px;
+      font-size: 9.5px;
       font-weight: 800;
       padding: 2px 5px;
       border-radius: 10px;
+      min-width: 16px;
+      text-align: center;
     }
 
-    /* Toast Notification */
+    /* Toast */
     .toast {
       position: fixed;
       top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
       background: #001D36;
       color: white;
       padding: 12px 20px;
       border-radius: 20px;
       font-size: 13px;
       font-weight: 600;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
       z-index: 2000;
       display: none;
       align-items: center;
       gap: 8px;
-      animation: fadeIn 0.2s ease-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
+      max-width: 90vw;
+      text-align: center;
     }
 
-    /* Pages Container */
     .page-section {
       display: none;
       flex-direction: column;
@@ -699,7 +1007,6 @@
       gap: 10px;
     }
 
-    /* Progress bar */
     .progress-bar {
       width: 100%;
       height: 8px;
@@ -712,1534 +1019,729 @@
       height: 100%;
       background: var(--primary);
       width: 0%;
-      transition: width 0.4s ease;
-    }
-
-    /* Sensitive data box */
-    .sensitive-box {
-      background: #F8FAFF;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .detail-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-    }
-    .detail-label {
-      color: var(--text-muted);
-      font-weight: 600;
-    }
-    .detail-val {
-      color: var(--text-primary);
-      font-weight: 700;
+      transition: width 0.35s ease;
     }
   </style>
 </head>
 <body>
 
-  <!-- Toast Notification Box -->
   <div id="toast" class="toast">
     <span id="toast-text">Action effectuée</span>
   </div>
 
   <div id="main-container" class="app-container no-nav">
-    <!-- Top App Bar -->
+    <!-- Top Bar -->
     <header class="top-bar">
       <div class="brand">
         <div class="logo-badge">S</div>
         <div>
-          <h1>SecretLink</h1>
-          <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Protocole de Révélation 4 Jours</div>
+          <h1>Messages Anonymes</h1>
+          <div class="brand-sub">SecretLink • Cloud Firestore 4 Jours</div>
         </div>
       </div>
-      <div id="cloud-sync-pill" class="status-pill" style="margin-left: auto; margin-right: 6px; background: #EEF2FF; border: 1px solid #C7D2FE; color: #3730A3; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px;" title="Synchronisation Cloud Firebase active">
-        <span id="cloud-status-dot" style="width: 7px; height: 7px; border-radius: 50%; background: #22C55E; display: inline-block;"></span>
-        <span id="cloud-status-text">Cloud Sync</span>
-      </div>
-      <div id="top-user-indicator" class="status-pill" style="display: none;">
-        <span class="status-pill-dot"></span>
-        <span id="top-username-label">CONNECTÉ</span>
+      <div class="top-pills">
+        <div id="cloud-sync-pill" class="status-pill" title="Synchronisation Cloud Firestore temps réel">
+          <span id="cloud-status-dot" class="status-dot"></span>
+          <span id="cloud-status-text">Cloud Sync</span>
+        </div>
+        <div id="top-user-indicator" class="status-pill status-pill-user" style="display: none;">
+          <span class="status-dot"></span>
+          <span id="top-username-label">CONNECTÉ</span>
+        </div>
       </div>
     </header>
 
     <!-- ============================================== -->
-    <!-- SCREEN 0: AUTHENTIFICATION (LOGIN / REGISTER)  -->
+    <!-- SCREEN 0: AUTHENTIFICATION GOOGLE (CLOUD)      -->
     <!-- ============================================== -->
     <section id="page-auth" class="page-section active">
-      <div class="bento-card profile-hero" style="text-align: center; padding: 26px 20px;">
-        <div style="font-size: 40px; margin-bottom: 8px;">🔒</div>
-        <h2 style="font-size: 20px; font-weight: 800;">Espace Sécurisé SecretLink</h2>
-        <p style="font-size: 12px; color: var(--primary-container); margin-top: 4px; line-height: 1.4;">
-          Recevez des messages anonymes. L'identité des expéditeurs reste scellée et chiffrée pendant 4 jours (96h).
-        </p>
+      <div style="text-align: center; padding: 10px 4px 4px 4px;">
+        <div class="auth-hero-icon">
+          <svg width="42" height="42" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+        </div>
+        <h2 style="font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">Messages Anonymes</h2>
+        <p style="font-size: 13.5px; color: var(--text-secondary); margin-top: 6px;">Messagerie chiffrée • Base Cloud Firestore</p>
       </div>
 
-      <!-- Bento Auth Form Card -->
-      <div class="bento-card">
-        <!-- Switch Tabs -->
-        <div class="auth-tab-bar">
-          <button id="tab-btn-login" class="auth-tab-btn active" onclick="switchAuthTab('login')">Connexion</button>
-          <button id="tab-btn-register" class="auth-tab-btn" onclick="switchAuthTab('register')">Créer un compte</button>
+      <div class="bento-card" style="text-align: center; padding: 26px 22px;">
+        <div class="auth-sync-badge">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>
+          </svg>
+          <span>FIREBASE CLOUD SYNC</span>
         </div>
 
-        <div id="auth-alert" class="alert-banner"></div>
-
-        <!-- TAB 1: CONNEXION -->
-        <div id="form-login">
-          <div class="form-group">
-            <label class="form-label">Nom d'utilisateur ou E-mail</label>
-            <input type="text" id="login-identifier" class="form-input" placeholder="Ex: julie ou julie@mail.com" autocomplete="username">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Mot de passe</label>
-            <input type="password" id="login-password" class="form-input" placeholder="Votre mot de passe" autocomplete="current-password">
-          </div>
-          <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="handleLogin()">
-            Se connecter
-          </button>
-        </div>
-
-        <!-- TAB 2: CRÉER UN COMPTE -->
-        <div id="form-register" style="display: none;">
-          <!-- Alerte doublon compte déjà existant -->
-          <div id="reg-duplicate-alert" style="display: none; background: #FEF3C7; border: 1.5px solid #F59E0B; border-radius: var(--radius-md); padding: 12px; margin-bottom: 14px;">
-            <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px; color: #92400E;">
-              <span>⚠️</span>
-              <span>Compte déjà existant</span>
-            </div>
-            <p id="reg-duplicate-desc" style="font-size: 12px; color: #78350F; margin: 6px 0 10px 0; line-height: 1.4;"></p>
-            <button id="reg-duplicate-btn" type="button" class="btn btn-primary" style="background: #D97706; width: 100%; font-size: 12px; padding: 10px;">
-              Se connecter à ce compte
-            </button>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Choisissez un avatar</label>
-            <div class="avatar-grid" id="avatar-selector">
-              <div class="avatar-option selected" onclick="selectAvatar('🔒', this)">🔒</div>
-              <div class="avatar-option" onclick="selectAvatar('🎭', this)">🎭</div>
-              <div class="avatar-option" onclick="selectAvatar('🤫', this)">🤫</div>
-              <div class="avatar-option" onclick="selectAvatar('⚡', this)">⚡</div>
-              <div class="avatar-option" onclick="selectAvatar('🌟', this)">🌟</div>
-              <div class="avatar-option" onclick="selectAvatar('🦊', this)">🦊</div>
-              <div class="avatar-option" onclick="selectAvatar('🚀', this)">🚀</div>
-              <div class="avatar-option" onclick="selectAvatar('💎', this)">💎</div>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Nom d'utilisateur *</label>
-            <input type="text" id="reg-username" class="form-input" placeholder="Ex: julie" autocomplete="off">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Adresse E-mail *</label>
-            <input type="email" id="reg-email" class="form-input" placeholder="Ex: julie@domaine.com" autocomplete="email">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Mot de passe *</label>
-            <input type="password" id="reg-password" class="form-input" placeholder="6 caractères minimum" autocomplete="new-password">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Message d'accueil sur votre lien public</label>
-            <textarea id="reg-bio" class="form-textarea" placeholder="Posez-moi vos questions anonymes ou dites-moi un secret en toute liberté !"></textarea>
-          </div>
-
-          <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="handleRegister()">
-            Créer mon compte
-          </button>
-        </div>
-      </div>
-
-      <!-- Bento Security Highlights -->
-      <div class="bento-grid-2">
-        <div class="bento-card" style="padding: 16px;">
-          <div style="font-size: 22px; margin-bottom: 6px;">🛡️</div>
-          <div style="font-size: 12px; font-weight: 800; color: var(--text-primary);">Stockage Local</div>
-          <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Sessions sécurisées sur l'appareil</div>
-        </div>
-        <div class="bento-card" style="padding: 16px;">
-          <div style="font-size: 22px; margin-bottom: 6px;">⏳</div>
-          <div style="font-size: 12px; font-weight: 800; color: var(--text-primary);">Compte à Rebours 4j</div>
-          <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Révélation automatique à 96h</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ============================================== -->
-    <!-- SCREEN 1: VISITOR SEND MODE (?to=username)     -->
-    <!-- ============================================== -->
-    <section id="page-visitor-send" class="page-section">
-      <div class="bento-card profile-hero">
-        <div class="profile-row">
-          <div class="avatar-wrapper">
-            <div id="visitor-recipient-avatar" class="avatar">🔒</div>
-          </div>
-          <div class="profile-info">
-            <h2 id="visitor-recipient-name">Destinataire</h2>
-            <p id="visitor-recipient-bio">Envoyez un message anonyme scellé...</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bento-card">
-        <div class="micro-header">
-          <span>Envoyer un message anonyme</span>
-          <span class="tag-badge">96h de secret</span>
-        </div>
-        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.45;">
-          Votre message restera totalement anonyme. Vos coordonnées saisies ci-dessous seront scellées et révélées dans exactement 4 jours.
+        <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">Accès sécurisé à votre espace</h3>
+        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
+          Connectez-vous avec votre compte Google pour synchroniser vos messages anonymes, votre lien personnel et vos sessions en temps réel sur Firebase.
         </p>
 
-        <div class="form-group">
-          <label class="form-label">Thématique (Tag)</label>
-          <select id="visitor-msg-tag" class="form-select">
-            <option value="confession">#Confession</option>
-            <option value="secret">#Secret</option>
-            <option value="question">#Question</option>
-            <option value="compliment">#Compliment</option>
-            <option value="amitie">#Amitié</option>
-          </select>
-        </div>
+        <div id="auth-alert" class="alert-banner" style="margin-bottom: 16px; text-align: left;"></div>
 
-        <div class="form-group">
-          <label class="form-label">Votre message secret *</label>
-          <textarea id="visitor-msg-content" class="form-textarea" placeholder="Écrivez votre message secret ici..."></textarea>
-        </div>
-
-        <div class="bento-card" style="background: #F8FAFF; padding: 14px; margin-bottom: 12px;">
-          <div class="micro-header" style="color: var(--primary);">
-            <span>Vos Coordonnées (Scellées 4 jours)</span>
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Nom ou Pseudo réel</label>
-            <input type="text" id="visitor-sender-name" class="form-input" placeholder="Ex: Julie D.">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Contact (Insta / Email / Numéro)</label>
-            <input type="text" id="visitor-sender-contact" class="form-input" placeholder="Ex: @julie ou 06 12 34 56 78">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Indice ou note personnelle</label>
-            <input type="text" id="visitor-sender-hint" class="form-input" placeholder="Ex: On s'est croisés hier...">
-          </div>
-        </div>
-
-        <button class="btn btn-primary" style="width: 100%;" onclick="submitVisitorAnonymousMessage()">
-          Envoyer mon message anonyme
+        <button id="google-sign-in-btn" class="google-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z"/>
+          </svg>
+          <span>Se connecter avec Google</span>
         </button>
 
-        <div style="text-align: center; margin-top: 14px;">
-          <button class="btn btn-outlined" style="width: 100%;" onclick="showAuthFromVisitor()">
-            Créer mon propre lien secret
-          </button>
+        <button id="google-redirect-btn" type="button" class="btn btn-subtle" style="width: 100%; margin-top: 10px;">
+          <span>Connexion Google par redirection (mobile)</span>
+        </button>
+
+        <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 14px; font-size: 11px; color: var(--text-secondary);">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+          </svg>
+          <span>Chaque compte est strictement isolé par règles Firestore</span>
+        </div>
+      </div>
+
+      <!-- Diagnostic & Etat de connexion Firebase en direct -->
+      <div class="firebase-diag-card">
+        <div class="micro-header" style="margin-bottom: 2px;">
+          <span>Connexion Firebase en direct</span>
+          <span id="auth-firebase-pill" style="font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 10px; background: #EEF2FF; color: #3730A3;">Vérification...</span>
+        </div>
+        <div class="firebase-diag-row">
+          <span class="firebase-diag-label">Projet Firebase :</span>
+          <span class="firebase-diag-val">gen-lang-client-0373560860</span>
+        </div>
+        <div class="firebase-diag-row">
+          <span class="firebase-diag-label">Base Cloud Firestore :</span>
+          <span class="firebase-diag-val">ai-studio-android-messages-...</span>
+        </div>
+        <div class="firebase-diag-row">
+          <span class="firebase-diag-label">Domaine Web actuel :</span>
+          <span id="auth-current-host" class="firebase-diag-val">—</span>
+        </div>
+        <div class="firebase-diag-row">
+          <span class="firebase-diag-label">Serveur Firestore :</span>
+          <span id="auth-firebase-status" class="firebase-diag-val">Test en cours...</span>
+        </div>
+        <button id="test-firebase-auth-btn" type="button" class="btn btn-outlined" style="min-height: 40px; font-size: 12px; margin-top: 2px;">
+          Tester la connexion Firebase
+        </button>
+      </div>
+
+      <div class="bento-grid-2">
+        <div class="bento-card" style="padding: 16px;">
+          <div style="width: 34px; height: 34px; border-radius: 50%; background: var(--primary-container); color: var(--primary); display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
+          </div>
+          <div style="font-size: 12.5px; font-weight: 800;">Firebase Firestore</div>
+          <div style="font-size: 10.5px; color: var(--text-secondary); margin-top: 2px;">Temps réel multi-appareils</div>
+        </div>
+        <div class="bento-card" style="padding: 16px;">
+          <div style="width: 34px; height: 34px; border-radius: 50%; background: var(--primary-container); color: var(--primary); display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 3"/></svg>
+          </div>
+          <div style="font-size: 12.5px; font-weight: 800;">Compte à rebours 4j</div>
+          <div style="font-size: 10.5px; color: var(--text-secondary); margin-top: 2px;">Révélation chiffrée 96h</div>
         </div>
       </div>
     </section>
 
     <!-- ============================================== -->
-    <!-- SCREEN 2: MON LIEN (DASHBOARD UTILISATEUR)     -->
+    <!-- SCREEN 1: MON LIEN (DASHBOARD UTILISATEUR)     -->
     <!-- ============================================== -->
     <section id="page-share" class="page-section">
-      <!-- Profile Header Hero -->
+      <!-- Profile Hero Card -->
       <div class="bento-card profile-hero">
         <div class="profile-row">
-          <div class="avatar-wrapper">
-            <div id="user-avatar" class="avatar">🔒</div>
-          </div>
+          <div id="hero-avatar" class="avatar-circle" style="width: 64px; height: 64px; font-size: 26px;">U</div>
           <div class="profile-info">
             <h2 id="user-display-name">Mon Profil</h2>
-            <p id="user-bio">Posez-moi une question ou dites-moi un secret en toute liberté...</p>
+            <p id="user-bio">Laissez-moi un message anonyme en toute liberté !</p>
+          </div>
+          <div class="hero-badge" id="hero-link-status-badge">
+            <span id="hero-link-dot" class="status-dot"></span>
+            <span id="hero-link-label">Actif</span>
           </div>
         </div>
       </div>
 
-      <!-- Secret Link Box Bento -->
+      <!-- Secret Link Card -->
       <div class="bento-card">
         <div class="micro-header">
-          <span>Votre Lien Secret Public</span>
-          <span class="tag-badge" style="background: var(--primary-container); color: var(--on-primary-container);">Actif</span>
+          <span>VOTRE LIEN SECRET</span>
+          <span class="tag-badge" style="font-size: 10px;">PRIVÉ</span>
         </div>
         <div class="link-display-box">
-          <span id="public-link-url" class="link-text">https://secretlink.app/u/moi</span>
-          <button class="icon-btn" onclick="copySecretLink()" title="Copier le lien">
-            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+          <span id="public-link-url" class="link-text">https://...</span>
+          <button id="copy-link-btn" class="icon-btn" title="Copier le lien" aria-label="Copier le lien">
+            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
           </button>
         </div>
-        <div class="btn-row">
-          <button class="btn btn-primary" onclick="shareSecretLink()">
-            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
-            Partager le lien
+
+        <div class="btn-row" style="margin-bottom: 10px;">
+          <button id="share-link-btn" class="btn btn-primary">
+            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+            Partager
           </button>
-          <button class="btn btn-outlined" onclick="openSendAnonymousModal()">
-            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-            Tester l'envoi
-          </button>
+          <a id="open-public-page-btn" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outlined">
+            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            Ouvrir page
+          </a>
         </div>
+
+        <button id="open-simulate-btn" class="btn btn-subtle" style="width: 100%;">
+          <svg width="16" height="16" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+          Tester l'envoi en direct (Simulation)
+        </button>
       </div>
 
-      <!-- Bento Dual Feature Grid -->
+      <!-- Simulated Notice -->
+      <div id="action-notice-banner" class="notice-banner" style="display: none;">
+        <span>✓</span>
+        <span id="action-notice-text" style="flex: 1;"></span>
+        <button id="dismiss-notice-btn" style="background: transparent; border: none; color: inherit; font-size: 18px; cursor: pointer;">×</button>
+      </div>
+
+      <!-- Dual Bento Feature Grid -->
       <div class="bento-grid-2">
         <div class="bento-tile pastel">
           <div class="micro-header" style="color: var(--on-primary-container); margin-bottom: 0;">
             <span>MESSAGES</span>
-            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <svg width="18" height="18" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 3"/></svg>
           </div>
           <div id="total-messages-count" class="tile-metric">00</div>
           <div class="tile-sub">Protocole 4 jours actif</div>
         </div>
 
         <div class="bento-tile deep-blue">
-          <div class="micro-header" style="color: var(--primary-container); margin-bottom: 0;">
+          <div class="micro-header" style="color: #D1E4FF; margin-bottom: 0;">
             <span>PROTECTION</span>
-            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
           </div>
           <div class="tile-title">Données isolées</div>
-          <div class="tile-sub">Scellé pendant 96h</div>
+          <div class="tile-sub">AES-256 scellé</div>
         </div>
       </div>
 
-      <!-- Protocol 3 Steps -->
+      <!-- 3-Step Protocol -->
       <div>
-        <div class="micro-header">Protocole en 3 étapes</div>
+        <div class="micro-header">PROTOCOLE EN 3 ÉTAPES</div>
         <div class="step-card">
           <div class="step-num">1</div>
           <div class="step-info">
             <h4>Partagez votre lien secret</h4>
-            <p>Diffusez votre URL personnelle sur vos réseaux, stories ou messages.</p>
+            <p>Diffusez votre URL personnelle sur vos réseaux, stories ou bio.</p>
           </div>
         </div>
         <div class="step-card">
           <div class="step-num">2</div>
           <div class="step-info">
-            <h4>Réception scellée</h4>
-            <p>Vous lisez les messages en toute discrétion. Les coordonnées restent chiffrées.</p>
+            <h4>Réception chiffrée AES-256</h4>
+            <p>Vous lisez les messages secrets. Les coordonnées restent scellées.</p>
           </div>
         </div>
         <div class="step-card">
           <div class="step-num">3</div>
           <div class="step-info">
             <h4>Compte à rebours de 4 jours</h4>
-            <p>Après 96h exactes, les coordonnées de l'expéditeur sont automatiquement révélées !</p>
+            <p>Après 96h, les coordonnées de l'expéditeur sont automatiquement révélées !</p>
           </div>
         </div>
       </div>
     </section>
 
     <!-- ============================================== -->
-    <!-- SCREEN 3: BOÎTE DE RÉCEPTION (INBOX)           -->
+    <!-- SCREEN 2: MESSAGERIE CHIFFRÉE (INBOX)          -->
     <!-- ============================================== -->
     <section id="page-inbox" class="page-section">
-      <div class="micro-header">
-        <span>Boîte de Réception</span>
-        <span id="unread-counter-text" class="tag-badge">0 non lu</span>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+        <div>
+          <h2 style="font-size: 24px; font-weight: 800; letter-spacing: -0.4px;">Messagerie Chiffrée</h2>
+          <p id="inbox-total-sub" style="font-size: 13px; color: var(--text-secondary);">0 message(s) anonyme(s)</p>
+        </div>
+        <div class="status-pill" style="background: var(--primary-container); border-color: #C7DCFC; color: var(--primary);">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          <span>Firestore</span>
+        </div>
       </div>
 
-      <!-- Filter Chips -->
-      <div class="filter-chips">
-        <button class="chip active" onclick="setFilter('all')">Tous</button>
-        <button class="chip" onclick="setFilter('unread')">Non lus</button>
-        <button class="chip" onclick="setFilter('favorites')">Favoris ⭐</button>
-        <button class="chip" onclick="setFilter('unlocked')">Déverrouillés 🔓</button>
+      <div class="filter-chips" id="inbox-filter-chips">
+        <button class="chip active" data-filter="ALL">Tous</button>
+        <button class="chip" data-filter="UNREAD">Non lus</button>
+        <button class="chip" data-filter="FAVORITES">Favoris</button>
+        <button class="chip" data-filter="UNLOCKED">Déverrouillés</button>
       </div>
 
-      <!-- Message List -->
-      <div id="messages-list" style="display: flex; flex-direction: column; gap: 14px;">
-        <!-- Dynamic message cards rendered via JS -->
-      </div>
+      <div id="messages-list" style="display: flex; flex-direction: column; gap: 14px;"></div>
     </section>
 
     <!-- ============================================== -->
-    <!-- SCREEN 4: SESSIONS & SÉCURITÉ                  -->
+    <!-- SCREEN 3: JOURNAL DES CONNEXIONS (SESSIONS)    -->
     <!-- ============================================== -->
-    <section id="page-security" class="page-section">
-      <div class="bento-card" style="background: var(--primary-container); border-color: var(--border);">
-        <div class="micro-header" style="color: var(--on-primary-container);">
-          <span>Protection des Sessions</span>
-          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+    <section id="page-sessions" class="page-section">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+        <div>
+          <h2 style="font-size: 24px; font-weight: 800; letter-spacing: -0.4px;">Journal des Connexions</h2>
+          <p style="font-size: 13px; color: var(--text-secondary);">Sessions synchronisées sur Cloud Firestore</p>
         </div>
-        <p style="font-size: 12px; color: var(--on-primary-container); line-height: 1.45;">
-          Votre compte enregistre l'empreinte de votre navigateur et votre horodatage dans votre stockage local sécurisé.
-        </p>
+        <div class="status-pill" style="background: var(--success-bg); border-color: var(--success-border); color: var(--success-text);">
+          <span>✓ Cloud Sync</span>
+        </div>
       </div>
 
-      <button class="btn btn-danger" onclick="revokeOtherSessions()">
-        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
-        Révoquer les autres sessions
+      <div class="bento-card" style="background: var(--primary-container); border-color: var(--border); padding: 18px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <svg width="24" height="24" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink: 0;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+          <div>
+            <div style="font-size: 11px; font-weight: 800; letter-spacing: 1px; color: var(--on-primary-container);">PROTECTION DES SESSIONS</div>
+            <p style="font-size: 11.5px; color: var(--on-primary-container); opacity: 0.85; line-height: 1.4; margin-top: 3px;">
+              Chaque connexion à votre compte Google enregistre l'empreinte de l'appareil et l'horodatage serveur dans votre base Cloud Firestore.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <button id="revoke-other-sessions-btn" class="btn btn-danger-outlined" style="display: none;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+        Déconnecter toutes les autres sessions
       </button>
 
-      <div class="micro-header">Historique des Connexions</div>
-      <div id="sessions-container" style="display: flex; flex-direction: column; gap: 12px;">
-        <!-- Dynamic sessions rendered via JS -->
-      </div>
+      <div id="sessions-count-header" class="micro-header" style="margin-bottom: 0;">HISTORIQUE DÉTAILLÉ (0)</div>
+      <div id="sessions-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
     </section>
 
     <!-- ============================================== -->
-    <!-- SCREEN 5: PARAMÈTRES & PROFIL                  -->
+    <!-- SCREEN 4: PARAMÈTRES & PROFIL                  -->
     <!-- ============================================== -->
     <section id="page-settings" class="page-section">
-      <div class="bento-card">
-        <div class="micro-header">Mon Profil</div>
-        <div class="profile-row" style="margin-bottom: 16px;">
-          <div class="avatar" id="settings-avatar">🔒</div>
-          <div class="profile-info">
-            <h2 id="settings-username">Mon Compte</h2>
-            <p id="settings-email" style="color: var(--text-secondary);">email@exemple.com</p>
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Nom d'utilisateur</label>
-          <input type="text" id="input-edit-username" class="form-input">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Message d'accueil (Bio)</label>
-          <textarea id="input-edit-bio" class="form-textarea"></textarea>
-        </div>
-        <button class="btn btn-primary" onclick="saveProfileChanges()">Sauvegarder les modifications</button>
+      <div>
+        <h2 style="font-size: 24px; font-weight: 800; letter-spacing: -0.4px;">Paramètres</h2>
+        <p style="font-size: 13px; color: var(--text-secondary);">Compte Google, sécurité Firestore et lien anonyme</p>
       </div>
 
-      <div class="bento-card">
-        <div class="micro-header">Sécurité & Synchronisation Cloud</div>
-        <div class="sensitive-box">
-          <div class="detail-row">
-            <span class="detail-label">Base de données Cloud</span>
-            <span class="detail-val" style="color: #059669;">⚡ Firebase Connecté</span>
+      <!-- Profile Summary Card with Edit Pencil -->
+      <div class="bento-card" style="padding: 18px;">
+        <div class="profile-row">
+          <div id="settings-avatar" class="avatar-circle" style="width: 56px; height: 56px; font-size: 22px; border-color: var(--primary-container);">U</div>
+          <div class="profile-info" style="color: var(--text-primary);">
+            <h2 id="settings-username" style="font-size: 17px;">Mon Compte</h2>
+            <div id="settings-email" style="font-size: 12px; color: var(--text-secondary);">email@exemple.com</div>
+            <div id="settings-slug" style="font-size: 11px; color: var(--primary); font-weight: 700; margin-top: 2px;">Slug : @...</div>
           </div>
-          <div class="detail-row">
-            <span class="detail-label">Multi-appareils</span>
-            <span class="detail-val">Synchronisé en temps réel</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Durée de révélation</span>
-            <span class="detail-val">4 Jours (96h)</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Stockage de secours</span>
-            <span class="detail-val">Cache Local + Cloud</span>
-          </div>
+          <button id="open-edit-profile-btn" class="icon-btn" title="Modifier le profil" aria-label="Modifier le profil">
+            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          </button>
         </div>
       </div>
 
-      <button class="btn btn-outlined" onclick="handleLogout()" style="margin-top: 4px;">
-        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-        Se déconnecter
-      </button>
+      <div class="micro-header" style="margin-bottom: -8px;">LIEN ANONYME &amp; RÉCEPTION</div>
+      <div class="bento-card" style="padding: 6px 18px;">
+        <div class="switch-row">
+          <div>
+            <div style="font-size: 14px; font-weight: 700;">Accepter les messages anonymes</div>
+            <div style="font-size: 11px; color: var(--text-secondary);">Autoriser les réceptions via votre lien</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-link-active" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="switch-divider"></div>
+        <div class="switch-row">
+          <div>
+            <div style="font-size: 14px; font-weight: 700;">Notifications de nouveaux messages</div>
+            <div style="font-size: 11px; color: var(--text-secondary);">Alerte instantanée à chaque message secret</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-notifications" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
 
-      <button class="btn btn-danger" onclick="deleteUserAccount()">
-        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-        Supprimer mon compte et mes messages
+      <div class="micro-header" style="margin-bottom: -8px;">SÉCURITÉ &amp; CLOUD FIRESTORE</div>
+      <div class="bento-card" style="padding: 6px 18px;">
+        <button class="setting-action-row" data-security-info="1">
+          <div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">Délai de compte à rebours</div>
+            <div style="font-size: 11px; color: var(--text-secondary);">Fixé à 4 jours (96 heures)</div>
+          </div>
+          <span style="color: var(--text-muted); font-size: 18px;">›</span>
+        </button>
+        <div class="switch-divider"></div>
+        <button class="setting-action-row" data-security-info="1">
+          <div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">Isolation Zero-Trust Firestore</div>
+            <div style="font-size: 11px; color: var(--text-secondary);">Accès strictement réservé à votre UID Google</div>
+          </div>
+          <span style="color: var(--text-muted); font-size: 18px;">›</span>
+        </button>
+        <div class="switch-divider"></div>
+        <button class="setting-action-row" data-security-info="1">
+          <div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">Base de données Cloud Firestore</div>
+            <div id="settings-firestore-stats" style="font-size: 11px; color: var(--text-secondary);">0 session(s) • 0 message(s)</div>
+          </div>
+          <span style="color: var(--text-muted); font-size: 18px;">›</span>
+        </button>
+        <div class="switch-divider"></div>
+        <div style="padding: 12px 0; display: flex; flex-direction: column; gap: 6px;">
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-primary);">Détails Firebase connectés</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-secondary);">Projet : gen-lang-client-0373560860</div>
+          <div id="settings-firebase-uid" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-secondary); word-break: break-all;">UID : —</div>
+          <button id="test-firebase-settings-btn" type="button" class="btn btn-outlined" style="min-height: 40px; font-size: 12px; margin-top: 4px;">
+            Tester la connexion Cloud Firestore
+          </button>
+        </div>
+      </div>
+
+      <button id="logout-btn" class="btn btn-danger" style="margin-top: 4px;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        Se déconnecter de cette session
       </button>
     </section>
   </div>
 
-  <!-- Bottom Navigation Bar (Shown when logged in) -->
-  <nav id="app-bottom-nav" class="bottom-nav" style="display: none;">
+  <!-- Bottom Navigation Bar -->
+  <nav id="app-bottom-nav" class="bottom-nav">
     <div class="bottom-nav-inner">
-      <button class="nav-item active" onclick="switchPage('share', this)">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+      <button class="nav-item active" data-page="share">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
         <span>Mon Lien</span>
       </button>
-      <button class="nav-item" onclick="switchPage('inbox', this)">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+      <button class="nav-item" data-page="inbox">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
         <span>Messages</span>
         <span id="nav-badge" class="badge-counter" style="display: none;">0</span>
       </button>
-      <button class="nav-item" onclick="switchPage('security', this)">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-        <span>Sécurité</span>
+      <button class="nav-item" data-page="sessions">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        <span>Sessions</span>
       </button>
-      <button class="nav-item" onclick="switchPage('settings', this)">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+      <button class="nav-item" data-page="settings">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
         <span>Paramètres</span>
       </button>
     </div>
   </nav>
 
-  <!-- ============================================== -->
-  <!-- MODAL: ENVOYER UN MESSAGE ANONYME (TEST)       -->
-  <!-- ============================================== -->
+  <!-- MODAL: SIMULER UN VISITEUR -->
   <div id="modal-send" class="modal-overlay">
     <div class="modal-window">
-      <div class="micro-header">
-        <span>Envoyer un message anonyme</span>
-        <button onclick="closeModal('modal-send')" style="border: none; background: transparent; cursor: pointer; font-size: 18px;">✕</button>
+      <div class="micro-header" style="margin-bottom: 0;">
+        <span>Simuler un visiteur</span>
+        <button data-close-modal="modal-send" style="border: none; background: transparent; cursor: pointer; font-size: 20px;">×</button>
       </div>
-      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">
-        Votre message restera totalement anonyme pendant 4 jours. À l'échéance des 96 heures, les coordonnées saisies ci-dessous seront déverrouillées.
+      <p id="simulate-modal-subtitle" style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.45;">
+        Ce formulaire simule ce qu'un internaute envoie via votre lien partagé.
       </p>
 
       <div class="form-group">
-        <label class="form-label">Thématique (Tag)</label>
-        <select id="send-tag" class="form-select">
-          <option value="confession">#Confession</option>
-          <option value="secret">#Secret</option>
-          <option value="question">#Question</option>
-          <option value="compliment">#Compliment</option>
-          <option value="amitie">#Amitié</option>
-        </select>
+        <label class="form-label">Message anonyme *</label>
+        <textarea id="send-content" class="form-textarea" maxlength="1000" placeholder="Tapez votre message secret..."></textarea>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Message Anonyme *</label>
-        <textarea id="send-content" class="form-textarea" placeholder="Tapez votre message secret ici..."></textarea>
+        <label class="form-label">Pseudo / Indice (Optionnel)</label>
+        <input type="text" id="send-sender-pseudo" class="form-input" maxlength="80" placeholder="ex: Une personne qui te regarde souvent">
       </div>
 
-      <div class="bento-card" style="background: #F8FAFF; padding: 14px; margin-bottom: 4px;">
-        <div class="micro-header" style="color: var(--primary);">
-          <span>Vos Coordonnées (Scellées 4 jours)</span>
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Votre Vrai Nom ou Pseudo</label>
-          <input type="text" id="send-sender-name" class="form-input" placeholder="Ex: Julie D.">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Contact (Email / Téléphone / Insta)</label>
-          <input type="text" id="send-sender-contact" class="form-input" placeholder="Ex: @julie ou 06 12 34 56 78">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Indice ou note personnelle</label>
-          <input type="text" id="send-sender-hint" class="form-input" placeholder="Ex: On s'est croisés hier...">
+      <div class="form-group">
+        <label class="form-label">Coordonnées de l'expéditeur *</label>
+        <input type="text" id="send-sender-coords" class="form-input" maxlength="200" placeholder="ex: Email, Instagram ou Téléphone">
+        <span style="font-size: 11px; color: var(--text-muted);">Protégées pendant 4 jours par compte à rebours</span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Type de message :</label>
+        <div class="tag-selector-grid" id="simulate-tag-grid">
+          <button type="button" class="tag-select-btn active" data-tag="Secret">Secret</button>
+          <button type="button" class="tag-select-btn" data-tag="Compliment">Compliment</button>
+          <button type="button" class="tag-select-btn" data-tag="Vérité">Vérité</button>
+          <button type="button" class="tag-select-btn" data-tag="Question">Question</button>
         </div>
       </div>
 
       <div class="btn-row">
-        <button class="btn btn-outlined" onclick="closeModal('modal-send')">Annuler</button>
-        <button class="btn btn-primary" onclick="submitAnonymousMessage()">
-          Envoyer le message
-        </button>
+        <button class="btn btn-subtle" data-close-modal="modal-send">Annuler</button>
+        <button id="confirm-simulate-send-btn" class="btn btn-primary">Envoyer (4 jours)</button>
       </div>
     </div>
   </div>
 
-  <!-- ============================================== -->
-  <!-- MODAL: DÉTAIL DU MESSAGE & COMPTE À REBOURS    -->
-  <!-- ============================================== -->
+  <!-- MODAL: DÉTAIL DU MESSAGE & COMPTE À REBOURS -->
   <div id="modal-detail" class="modal-overlay">
     <div class="modal-window">
-      <div class="micro-header">
-        <span id="detail-tag" class="tag-badge">#CONFESSION</span>
-        <button onclick="closeModal('modal-detail')" style="border: none; background: transparent; cursor: pointer; font-size: 18px;">✕</button>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <h3 style="font-size: 18px; font-weight: 800;">Message chiffré</h3>
+        <span id="detail-tag" class="tag-badge">#SECRET</span>
       </div>
 
-      <div class="bento-card" style="background: #F8FAFF; border-radius: var(--radius-md); padding: 16px;">
-        <div style="font-size: 24px; color: var(--primary); margin-bottom: 4px; line-height: 1;">“</div>
-        <p id="detail-content" style="font-size: 15px; font-weight: 600; line-height: 1.5; color: var(--text-primary);">
-          Contenu du message...
-        </p>
-        <div id="detail-date" style="font-size: 11px; color: var(--text-muted); text-align: right; margin-top: 10px;"></div>
+      <div class="bento-card" style="background: #F8FAFF; border-radius: 22px; padding: 16px;">
+        <p id="detail-content" style="font-size: 15.5px; font-weight: 600; line-height: 1.5; color: var(--text-primary);"></p>
+        <div id="detail-pseudo" style="font-size: 12px; font-style: italic; color: var(--text-secondary); text-align: right; margin-top: 10px;">— Anonyme</div>
+        <div id="detail-date" style="font-size: 11px; color: var(--text-muted); text-align: right; margin-top: 4px;"></div>
       </div>
 
-      <!-- Bento Countdown Card -->
-      <div id="detail-countdown-card" class="bento-card" style="background: var(--primary-container);">
-        <div class="micro-header" style="color: var(--on-primary-container);">
-          <span id="detail-status-title">Compte à rebours 4 jours</span>
-          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      <div id="detail-countdown-card" class="bento-card" style="background: var(--primary-container); border-color: #B9D7FE; padding: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 14px; color: var(--primary);" id="detail-status-title">
+          Compte à rebours 4 jours
         </div>
-        <div id="detail-timer" style="font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 800; color: var(--primary); text-align: center; margin: 4px 0;">
-          3j 23h 59m 45s
+        <div id="detail-timer" style="font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 800; color: var(--primary); margin-top: 8px;">
+          3j 23h 59m 59s
         </div>
         <div class="progress-bar">
           <div id="detail-progress-fill" class="progress-fill"></div>
         </div>
-        <p id="detail-protocol-desc" style="font-size: 11px; color: var(--on-primary-container); text-align: center; opacity: 0.85;">
+        <p id="detail-protocol-desc" style="font-size: 11px; color: var(--text-secondary); line-height: 1.45;">
           Les coordonnées de l'expéditeur sont scellées. Elles seront dévoilées à 0j 00h 00m 00s.
         </p>
       </div>
 
-      <!-- Sender Reveal Details -->
-      <div id="detail-sender-box" class="sensitive-box">
-        <div class="micro-header" style="margin-bottom: 4px;">Identité de l'expéditeur</div>
-        <div class="detail-row">
-          <span class="detail-label">Nom / Pseudo :</span>
-          <span id="detail-sender-name" class="detail-val">••••••••••••</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Contact scellé :</span>
-          <span id="detail-sender-contact" class="detail-val">••••••••••••</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Indice :</span>
-          <span id="detail-sender-hint" class="detail-val">••••••••••••</span>
+      <div>
+        <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">Coordonnées de l'expéditeur :</div>
+        <div class="sensitive-box">
+          <div id="detail-locked-placeholder" style="text-align: center; padding: 8px 0;">
+            <div style="font-family: 'JetBrains Mono', monospace; letter-spacing: 2px; color: var(--text-muted); font-size: 14px;">••••••••••••••••••••••••</div>
+            <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 4px;">Masqué jusqu'à expiration du compte à rebours</div>
+          </div>
+          <div id="detail-unlocked-info" style="display: none; flex-direction: column; gap: 6px;">
+            <div class="detail-row">
+              <span class="detail-label">Expéditeur :</span>
+              <span id="detail-sender-name" class="detail-val"></span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Coordonnées :</span>
+              <span id="detail-sender-coords" class="detail-val" style="color: var(--primary);"></span>
+            </div>
+            <div class="detail-row" id="detail-device-row">
+              <span class="detail-label">Terminal :</span>
+              <span id="detail-sender-device" class="detail-val"></span>
+            </div>
+          </div>
         </div>
       </div>
 
+      <button id="fast-forward-unlock-btn" class="btn btn-outlined" style="width: 100%; font-size: 12px;">
+        ⏩ Accélérer pour le test (Déverrouiller)
+      </button>
+
       <div class="btn-row">
-        <button class="btn btn-danger" onclick="deleteCurrentMessage()">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-          Supprimer
-        </button>
-        <button class="btn btn-primary" onclick="closeModal('modal-detail')">Fermer</button>
+        <button id="detail-delete-btn" class="btn btn-danger" style="flex: 0.7;">Supprimer</button>
+        <button id="detail-share-btn" class="btn btn-outlined" style="flex: 0.9;">Partager</button>
+        <button class="btn btn-primary" data-close-modal="modal-detail" style="flex: 0.9;">Fermer</button>
       </div>
     </div>
   </div>
 
-  <!-- FIREBASE SDK v9 (Compat for seamless browser integration) -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
+  <!-- MODAL: MODIFIER MON PROFIL -->
+  <div id="modal-edit-profile" class="modal-overlay">
+    <div class="modal-window">
+      <h3 style="font-size: 18px; font-weight: 800;">Modifier mon profil</h3>
 
-  <!-- JAVASCRIPT APPLICATION ENGINE -->
-  <script>
-    // 4 Days in Milliseconds: 4 * 24 * 60 * 60 * 1000 = 345,600,000 ms
-    const PROTOCOL_DURATION_MS = 4 * 24 * 60 * 60 * 1000;
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+        <div id="edit-avatar-preview" class="avatar-circle" style="width: 72px; height: 72px; font-size: 28px;">U</div>
+        <div class="preset-picker-row" id="avatar-preset-picker"></div>
+      </div>
 
-    // Local Storage Keys (used as fast instant cache)
-    const STORAGE_KEY_USERS = "secretlink_registered_users";
-    const STORAGE_KEY_CURRENT_USER = "secretlink_logged_user";
-    const STORAGE_KEY_MSGS_PREFIX = "secretlink_msgs_";
-    const STORAGE_KEY_SESSIONS_PREFIX = "secretlink_sess_";
+      <div class="form-group">
+        <label class="form-label">URL photo personnalisée (Optionnel)</label>
+        <input type="url" id="edit-photo-url" class="form-input" maxlength="500" placeholder="https://... (ou utilisez les avatars ci-dessus)">
+      </div>
 
-    // Firebase Configuration
+      <div class="form-group">
+        <label class="form-label">Nom d'utilisateur (2 à 40 caractères) *</label>
+        <input type="text" id="edit-username" class="form-input" maxlength="40" minlength="2">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Message de présentation</label>
+        <textarea id="edit-bio" class="form-textarea" maxlength="300"></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-subtle" data-close-modal="modal-edit-profile">Annuler</button>
+        <button id="save-profile-btn" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PROTOCOLE DE SÉCURITÉ -->
+  <div id="modal-security-info" class="modal-overlay">
+    <div class="modal-window">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <svg width="22" height="22" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        <h3 style="font-size: 18px; font-weight: 800;">Protocole de Sécurité</h3>
+      </div>
+      <div>
+        <div style="font-size: 13px; font-weight: 700; color: var(--primary);">1. Compte à rebours de 4 jours :</div>
+        <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-top: 3px;">
+          Pendant 96 heures après l'envoi, les coordonnées de l'expéditeur restent totalement scellées. Seul le message est lisible.
+        </p>
+      </div>
+      <div>
+        <div style="font-size: 13px; font-weight: 700; color: var(--primary);">2. Persistance Cloud Firestore :</div>
+        <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-top: 3px;">
+          Votre profil, vos messages et votre journal de sessions sont stockés dans Firebase Cloud Firestore sous /users/{uid} avec règles d'accès strictes par identifiant Google.
+        </p>
+      </div>
+      <button class="btn btn-primary" data-close-modal="modal-security-info" style="width: 100%;">Compris</button>
+    </div>
+  </div>
+
+  <!-- FIREBASE JS SDK v11 MODULAR (Auth + Named Cloud Firestore) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+    import {
+      getAuth,
+      GoogleAuthProvider,
+      signInWithPopup,
+      signInWithRedirect,
+      getRedirectResult,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+    import {
+      initializeFirestore,
+      collection,
+      doc,
+      getDoc,
+      getDocs,
+      setDoc,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      query,
+      where,
+      orderBy,
+      onSnapshot,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+    const FOUR_DAYS_MS = 4 * 24 * 60 * 60 * 1000;
+    const ALLOWED_TAGS = ["Bienvenue", "Secret", "Compliment", "Vérité", "Question"];
+    const FIRESTORE_DATABASE_ID = "ai-studio-android-messages-d9b78de9-0fcf-4017-a2a8-daa92b91d8cd";
+
     const firebaseConfig = {
-      apiKey: "AIzaSyDnoI2H73ihZ2FwAYxj6eJ7qLH_s9f2Q6U",
-      authDomain: "anonyme-message.firebaseapp.com",
-      databaseURL: "https://anonyme-message-default-rtdb.firebaseio.com",
-      projectId: "anonyme-message",
-      storageBucket: "anonyme-message.firebasestorage.app",
-      messagingSenderId: "196227733380",
-      appId: "1:196227733380:web:1661b1b27a8bd204316fd1",
-      measurementId: "G-NFXTBVNDCQ"
+      apiKey: "AIzaSyA8ei0i3VRkG33IRKeYiW0trKydB3qGr2M",
+      authDomain: "gen-lang-client-0373560860.firebaseapp.com",
+      projectId: "gen-lang-client-0373560860",
+      storageBucket: "gen-lang-client-0373560860.firebasestorage.app",
+      messagingSenderId: "687834440358"
     };
 
-    // Initialize Firebase
-    let firebaseApp = null;
-    let firebaseDb = null;
-    let isCloudReady = false;
+    const AVATAR_PRESETS = {
+      preset_1: ["#0062FF", "#00D2FF"],
+      preset_2: ["#1D4ED8", "#38BDF8"],
+      preset_3: ["#0369A1", "#67E8F9"],
+      preset_4: ["#0F172A", "#2563EB"],
+      preset_5: ["#0284C7", "#93C5FD"]
+    };
 
-    try {
-      if (typeof firebase !== "undefined") {
-        firebaseApp = firebase.initializeApp(firebaseConfig);
-        firebaseDb = firebase.database();
-        try { firebase.analytics(); } catch(e) {}
-        isCloudReady = true;
-        console.log("Firebase Database initialisée avec succès.");
-      }
-    } catch (e) {
-      console.warn("Initialisation Firebase en mode secours local:", e);
-    }
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = initializeFirestore(app, {}, FIRESTORE_DATABASE_ID);
+    const googleProvider = new GoogleAuthProvider();
+    googleProvider.setCustomParameters({ prompt: "select_account" });
 
-    function sanitizeKey(key) {
-      return (key || "").replace(/[.#$\[\]\/]/g, "_").toLowerCase();
+    // State
+    let currentFirebaseUser = null;
+    let userProfile = null;
+    let messages = [];
+    let sessions = [];
+    let currentSessionId = null;
+    let currentFilter = "ALL";
+    let selectedMessageId = null;
+    let selectedSimulateTag = "Secret";
+    let editPhotoUri = "preset_1";
+    let knownMessageIds = new Set();
+    let initialMessagesLoaded = false;
+
+    let unsubProfile = null;
+    let unsubMessages = null;
+    let unsubSessions = null;
+
+    // Helpers
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     }
 
     function setCloudStatus(isOnline, text) {
       const dot = document.getElementById("cloud-status-dot");
       const label = document.getElementById("cloud-status-text");
-      if (dot) dot.style.background = isOnline ? "#22C55E" : "#EAB308";
-      if (label) label.textContent = text || (isOnline ? "Cloud Sync" : "Local");
+      if (dot) dot.style.background = isOnline ? "#10B981" : "#F59E0B";
+      if (label) label.textContent = text || (isOnline ? "Cloud Sync" : "Hors ligne");
     }
 
-    // Application State
-    let currentUser = null;
-    let selectedAvatar = "🔒";
-    let messages = [];
-    let sessions = [];
-    let currentFilter = "all";
-    let selectedMessageId = null;
-    let activeDbListeners = [];
+    function showToast(text) {
+      const toast = document.getElementById("toast");
+      document.getElementById("toast-text").textContent = text;
+      toast.style.display = "flex";
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => {
+        toast.style.display = "none";
+      }, 2800);
+    }
 
-    // Initialize Application
-    async function initApp() {
-      // Clean up any legacy demo user from previous demo version
-      cleanupLegacyDemo();
-
-      // Check if URL has ?to= query parameter for visitors -> Redirect to dedicated send.html page
-      const urlParams = new URLSearchParams(window.location.search);
-      const recipientSlug = urlParams.get('to') || urlParams.get('u');
-
-      if (recipientSlug) {
-        window.location.replace(`send.html?to=${encodeURIComponent(recipientSlug)}`);
-        return;
-      }
-
-      // 1. First attempt to load local cache for instant UI response
-      const storedLoggedUser = localStorage.getItem(STORAGE_KEY_CURRENT_USER);
-      if (storedLoggedUser) {
-        try {
-          currentUser = JSON.parse(storedLoggedUser);
-        } catch(e) {
-          currentUser = null;
-        }
-      }
-
-      // 2. Synchronize all accounts from Firebase Cloud Database in background
-      await syncAllUsersFromCloud();
-
-      if (currentUser) {
-        // Logged in user dashboard
-        loadUserData();
-        showLoggedInApp();
-        // Setup real-time cloud listener for cross-device synchronization
-        listenToUserCloudData(currentUser.username);
+    function showAuthAlert(msg, type = "error") {
+      const box = document.getElementById("auth-alert");
+      if (!box) return;
+      box.classList.remove("info", "success");
+      if (type === "info" || type === "success") box.classList.add(type);
+      if (!msg) {
+        box.style.display = "none";
+        box.textContent = "";
       } else {
-        // Not logged in -> Show Authentication Screen requiring credentials
-        showAuthScreen();
-      }
-
-      // Live duplicate check listener
-      document.getElementById("reg-username")?.addEventListener("input", checkRegistrationDuplicates);
-      document.getElementById("reg-email")?.addEventListener("input", checkRegistrationDuplicates);
-
-      // Start Countdown Ticker
-      setInterval(tickCountdown, 1000);
-    }
-
-    function cleanupLegacyDemo() {
-      const legacyDemo = localStorage.getItem("secretlink_user");
-      if (legacyDemo) {
-        try {
-          const parsed = JSON.parse(legacyDemo);
-          if (parsed.username === "Alexandre" && parsed.email === "alexandre@secretlink.app") {
-            localStorage.removeItem("secretlink_user");
-            localStorage.removeItem("secretlink_messages");
-            localStorage.removeItem("secretlink_sessions");
-          }
-        } catch(e) {}
+        box.textContent = msg;
+        box.style.display = "block";
       }
     }
 
-    function getUsersList() {
-      const stored = localStorage.getItem(STORAGE_KEY_USERS);
-      if (!stored) return [];
-      try { return JSON.parse(stored); } catch(e) { return []; }
-    }
+    async function testFirebaseConnection(silent = false) {
+      const pill = document.getElementById("auth-firebase-pill");
+      const statusEl = document.getElementById("auth-firebase-status");
+      const hostEl = document.getElementById("auth-current-host");
+      if (hostEl) {
+        hostEl.textContent = window.location.protocol === "file:"
+          ? "file:// (local - HTTPS requis)"
+          : (window.location.host || window.location.origin);
+      }
+      if (pill) {
+        pill.textContent = "Test...";
+        pill.style.background = "#EEF2FF";
+        pill.style.color = "#3730A3";
+      }
+      if (statusEl) statusEl.textContent = "Connexion à Cloud Firestore...";
 
-    function saveUsersList(users) {
-      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
-    }
-
-    // Cloud Users Synchronization
-    async function syncAllUsersFromCloud() {
-      if (!firebaseDb) return;
+      const started = performance.now();
       try {
-        setCloudStatus(true, "Synchronisation...");
-        const snapshot = await firebaseDb.ref("users").once("value");
-        if (snapshot.exists()) {
-          const cloudUsersObj = snapshot.val();
-          const localUsers = getUsersList();
-          const userMap = new Map();
-
-          // Load local users first
-          localUsers.forEach(u => {
-            if (u && u.username) userMap.set(u.username.toLowerCase(), u);
-          });
-
-          // Merge cloud users (Cloud is the authoritative source across devices)
-          Object.keys(cloudUsersObj).forEach(key => {
-            const u = cloudUsersObj[key];
-            if (u && u.username) {
-              userMap.set(u.username.toLowerCase(), u);
-            }
-          });
-
-          const mergedUsers = Array.from(userMap.values());
-          saveUsersList(mergedUsers);
-
-          // If current user is logged in, refresh data with authoritative cloud user
-          if (currentUser) {
-            const updated = mergedUsers.find(u => u.username.toLowerCase() === currentUser.username.toLowerCase());
-            if (updated) {
-              currentUser = updated;
-              localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(updated));
-            }
-          }
-
-          setCloudStatus(true, "Cloud Sync");
-          renderSavedAccounts();
-        } else {
-          // If cloud is empty, upload existing local users to Firebase
-          const localUsers = getUsersList();
-          for (const u of localUsers) {
-            if (u && u.username) {
-              const uKey = sanitizeKey(u.username);
-              await firebaseDb.ref(`users/${uKey}`).set(u);
-            }
-          }
-          setCloudStatus(true, "Cloud Sync");
+        await getDoc(doc(db, "publicLinks", "__healthcheck__"));
+        const elapsed = Math.round(performance.now() - started);
+        if (pill) {
+          pill.textContent = "Connecté ✓";
+          pill.style.background = "var(--success-bg)";
+          pill.style.color = "var(--success-text)";
         }
+        if (statusEl) statusEl.textContent = `Opérationnel (${elapsed} ms)`;
+        setCloudStatus(true, currentFirebaseUser ? "Cloud Sync" : "Firebase Prêt");
+        if (!silent) showToast(`Firebase Cloud Firestore connecté (${elapsed} ms) !`);
       } catch (err) {
-        console.warn("Erreur lors de la synchronisation cloud des utilisateurs:", err);
-        setCloudStatus(false, "Hors ligne");
-      }
-    }
-
-    // Cloud User Save
-    async function saveUserToCloud(user) {
-      if (!firebaseDb || !user || !user.username) return;
-      try {
-        const uKey = sanitizeKey(user.username);
-        await firebaseDb.ref(`users/${uKey}`).set(user);
-        setCloudStatus(true, "Cloud Sync");
-      } catch (e) {
-        console.error("Erreur de sauvegarde utilisateur dans Firebase:", e);
-      }
-    }
-
-    // Real-time listener for current user messages & sessions across all devices
-    function listenToUserCloudData(username) {
-      if (!firebaseDb || !username) return;
-      const uKey = sanitizeKey(username);
-
-      // Clean up any previous listeners
-      activeDbListeners.forEach(l => l.ref.off(l.event, l.fn));
-      activeDbListeners = [];
-
-      // 1. Listen to real-time incoming messages
-      const msgsRef = firebaseDb.ref(`user_messages/${uKey}`);
-      const msgsFn = (snapshot) => {
-        if (snapshot.exists()) {
-          const val = snapshot.val();
-          const cloudMsgs = Array.isArray(val) ? val : Object.values(val);
-          // Sort messages by newest first
-          cloudMsgs.sort((a, b) => (b.receivedAt || 0) - (a.receivedAt || 0));
-          messages = cloudMsgs;
-          saveUserMessagesLocalOnly();
-          renderUI();
-          setCloudStatus(true, "Cloud Sync");
+        console.warn("Firebase connectivity check error:", err);
+        const msg = err?.code || err?.message || "Erreur réseau";
+        if (pill) {
+          pill.textContent = "Erreur";
+          pill.style.background = "var(--error-bg)";
+          pill.style.color = "var(--error-text)";
         }
-      };
-      msgsRef.on("value", msgsFn);
-      activeDbListeners.push({ ref: msgsRef, event: "value", fn: msgsFn });
-
-      // 2. Listen to real-time sessions across devices
-      const sessRef = firebaseDb.ref(`user_sessions/${uKey}`);
-      const sessFn = (snapshot) => {
-        if (snapshot.exists()) {
-          const val = snapshot.val();
-          const cloudSess = Array.isArray(val) ? val : Object.values(val);
-          // Preserve isCurrent flag for this local device
-          sessions = cloudSess.map(s => {
-            if (s.id === currentSessionId) s.isCurrent = true;
-            return s;
-          });
-          saveUserSessionsLocalOnly();
-          renderSessions();
-        }
-      };
-      sessRef.on("value", sessFn);
-      activeDbListeners.push({ ref: sessRef, event: "value", fn: sessFn });
-    }
-
-    let currentSessionId = "sess_" + Date.now();
-
-    function loadUserData() {
-      if (!currentUser) return;
-      const msgsKey = STORAGE_KEY_MSGS_PREFIX + currentUser.username.toLowerCase();
-      const sessKey = STORAGE_KEY_SESSIONS_PREFIX + currentUser.username.toLowerCase();
-
-      try {
-        messages = JSON.parse(localStorage.getItem(msgsKey)) || [];
-      } catch(e) { messages = []; }
-
-      try {
-        sessions = JSON.parse(localStorage.getItem(sessKey)) || [];
-      } catch(e) { sessions = []; }
-
-      // Register current device session
-      const existingCurrent = sessions.find(s => s.id === currentSessionId);
-      if (!existingCurrent) {
-        const currentSess = {
-          id: currentSessionId,
-          deviceInfo: navigator.userAgent.includes("Mobile") ? "Smartphone Web" : "Navigateur Web",
-          ipAddress: "Session Cloud Sécurisée",
-          loginTime: Date.now(),
-          isActive: true,
-          isCurrent: true
-        };
-        sessions.unshift(currentSess);
-        saveUserSessions();
+        if (statusEl) statusEl.textContent = `Erreur : ${msg}`;
+        setCloudStatus(false, "Erreur Firebase");
+        if (!silent) showToast(`Connexion Firebase impossible : ${msg}`);
       }
-    }
-
-    function saveUserMessagesLocalOnly() {
-      if (!currentUser) return;
-      const msgsKey = STORAGE_KEY_MSGS_PREFIX + currentUser.username.toLowerCase();
-      localStorage.setItem(msgsKey, JSON.stringify(messages));
-    }
-
-    function saveUserMessages() {
-      if (!currentUser) return;
-      saveUserMessagesLocalOnly();
-      // Sync to Firebase Cloud Database for instant multi-device availability
-      if (firebaseDb) {
-        const uKey = sanitizeKey(currentUser.username);
-        firebaseDb.ref(`user_messages/${uKey}`).set(messages).catch(err => {
-          console.warn("Échec synchronisation cloud des messages:", err);
-        });
-      }
-    }
-
-    function saveUserSessionsLocalOnly() {
-      if (!currentUser) return;
-      const sessKey = STORAGE_KEY_SESSIONS_PREFIX + currentUser.username.toLowerCase();
-      localStorage.setItem(sessKey, JSON.stringify(sessions));
-    }
-
-    function saveUserSessions() {
-      if (!currentUser) return;
-      saveUserSessionsLocalOnly();
-      // Sync to Firebase Cloud Database
-      if (firebaseDb) {
-        const uKey = sanitizeKey(currentUser.username);
-        firebaseDb.ref(`user_sessions/${uKey}`).set(sessions).catch(err => {
-          console.warn("Échec synchronisation cloud des sessions:", err);
-        });
-      }
-    }
-
-    // ==========================================
-    // AUTHENTICATION LOGIC (LOGIN & REGISTER)
-    // ==========================================
-    function checkRegistrationDuplicates() {
-      const usernameInput = document.getElementById("reg-username");
-      const emailInput = document.getElementById("reg-email");
-      const alertBox = document.getElementById("reg-duplicate-alert");
-      const descEl = document.getElementById("reg-duplicate-desc");
-      const btnEl = document.getElementById("reg-duplicate-btn");
-      if (!usernameInput || !emailInput || !alertBox) return;
-
-      const uVal = usernameInput.value.trim().toLowerCase();
-      const eVal = emailInput.value.trim().toLowerCase();
-
-      if (!uVal && !eVal) {
-        alertBox.style.display = "none";
-        return;
-      }
-
-      const users = getUsersList();
-      const match = users.find(u =>
-        (uVal && u.username.toLowerCase() === uVal) ||
-        (eVal && u.email.toLowerCase() === eVal)
-      );
-
-      if (match) {
-        alertBox.style.display = "block";
-        descEl.textContent = `Ce pseudonyme ou e-mail est déjà utilisé. Veuillez vous connecter avec votre mot de passe.`;
-        btnEl.onclick = () => {
-          switchAuthTab('login');
-          const idInput = document.getElementById("login-identifier");
-          if (idInput) {
-            idInput.value = match.username;
-            document.getElementById("login-password")?.focus();
-          }
-        };
-      } else {
-        alertBox.style.display = "none";
-      }
-    }
-
-    function switchAuthTab(tab) {
-      const loginBtn = document.getElementById("tab-btn-login");
-      const regBtn = document.getElementById("tab-btn-register");
-      const loginForm = document.getElementById("form-login");
-      const regForm = document.getElementById("form-register");
-      const alertBox = document.getElementById("auth-alert");
-      alertBox.style.display = "none";
-
-      if (tab === 'login') {
-        loginBtn.classList.add("active");
-        regBtn.classList.remove("active");
-        loginForm.style.display = "block";
-        regForm.style.display = "none";
-      } else {
-        regBtn.classList.add("active");
-        loginBtn.classList.remove("active");
-        regForm.style.display = "block";
-        loginForm.style.display = "none";
-        checkRegistrationDuplicates();
-      }
-    }
-
-    function selectAvatar(avatar, el) {
-      selectedAvatar = avatar;
-      document.querySelectorAll(".avatar-option").forEach(opt => opt.classList.remove("selected"));
-      el.classList.add("selected");
-    }
-
-    function showAuthAlert(msg) {
-      const alertBox = document.getElementById("auth-alert");
-      alertBox.textContent = msg;
-      alertBox.style.display = "block";
-    }
-
-    async function handleLogin() {
-      const identifier = document.getElementById("login-identifier").value.trim().toLowerCase();
-      const password = document.getElementById("login-password").value;
-
-      if (!identifier || !password) {
-        showAuthAlert("Veuillez renseigner votre identifiant et votre mot de passe.");
-        return;
-      }
-
-      // First check cloud directly to guarantee freshest multi-device accounts
-      setCloudStatus(true, "Vérification Cloud...");
-      await syncAllUsersFromCloud();
-
-      const users = getUsersList();
-      const user = users.find(u =>
-        u.username.toLowerCase() === identifier || u.email.toLowerCase() === identifier
-      );
-
-      if (!user) {
-        showAuthAlert("Aucun compte trouvé avec cet identifiant. Veuillez créer un compte.");
-        return;
-      }
-
-      if (user.password !== password) {
-        showAuthAlert("Mot de passe incorrect.");
-        return;
-      }
-
-      // Login success!
-      currentUser = user;
-      localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(user));
-      loadUserData();
-      showLoggedInApp();
-      listenToUserCloudData(user.username);
-      showToast("Connexion réussie ! Vos données ont été récupérées du Cloud.");
-    }
-
-    async function handleRegister() {
-      const username = document.getElementById("reg-username").value.trim();
-      const email = document.getElementById("reg-email").value.trim().toLowerCase();
-      const password = document.getElementById("reg-password").value;
-      const bio = document.getElementById("reg-bio").value.trim();
-
-      if (!username || !email || !password) {
-        showAuthAlert("Veuillez remplir tous les champs obligatoires (*).");
-        return;
-      }
-
-      if (username.length < 3) {
-        showAuthAlert("Le nom d'utilisateur doit comporter au moins 3 caractères.");
-        return;
-      }
-
-      if (password.length < 6) {
-        showAuthAlert("Le mot de passe doit comporter au moins 6 caractères.");
-        return;
-      }
-
-      // Ensure we check against latest cloud database
-      await syncAllUsersFromCloud();
-
-      const users = getUsersList();
-      const existingUser = users.find(u =>
-        u.username.toLowerCase() === username.toLowerCase() ||
-        u.email.toLowerCase() === email
-      );
-      if (existingUser) {
-        showAuthAlert(`Ce compte (@${existingUser.username}) existe déjà dans la base de données avec ces coordonnées ! Inutile d'en recréer un nouveau.`);
-        checkRegistrationDuplicates();
-        return;
-      }
-
-      const newUser = {
-        id: "usr_" + Date.now(),
-        username: username,
-        email: email,
-        password: password,
-        bio: bio || "Posez-moi vos questions anonymes ou dites-moi un secret en toute liberté !",
-        avatar: selectedAvatar || "🔒",
-        createdAt: Date.now()
-      };
-
-      users.push(newUser);
-      saveUsersList(users);
-
-      // Save to Firebase Cloud Database immediately for cross-device access
-      await saveUserToCloud(newUser);
-
-      // Log in immediately
-      currentUser = newUser;
-      localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(newUser));
-      loadUserData();
-      showLoggedInApp();
-      listenToUserCloudData(newUser.username);
-      showToast("Compte créé et synchronisé sur le Cloud avec succès !");
-    }
-
-    function handleLogout() {
-      // Detach real-time listeners
-      activeDbListeners.forEach(l => l.ref.off(l.event, l.fn));
-      activeDbListeners = [];
-
-      currentUser = null;
-      localStorage.removeItem(STORAGE_KEY_CURRENT_USER);
-      localStorage.removeItem("secretlink_last_user");
-      showAuthScreen();
-      showToast("Déconnexion réussie.");
-    }
-
-    async function deleteUserAccount() {
-      if (!currentUser) return;
-      if (!confirm("Voulez-vous vraiment supprimer votre compte et tous vos messages reçus ? Cette action est irréversible.")) {
-        return;
-      }
-
-      const userToDelete = currentUser.username;
-      const uKey = sanitizeKey(userToDelete);
-
-      // Delete from Firebase Cloud Database
-      if (firebaseDb) {
-        try {
-          await firebaseDb.ref(`users/${uKey}`).remove();
-          await firebaseDb.ref(`user_messages/${uKey}`).remove();
-          await firebaseDb.ref(`user_sessions/${uKey}`).remove();
-        } catch (e) {
-          console.warn("Erreur suppression cloud:", e);
-        }
-      }
-
-      const users = getUsersList().filter(u => u.username.toLowerCase() !== userToDelete.toLowerCase());
-      saveUsersList(users);
-
-      const msgsKey = STORAGE_KEY_MSGS_PREFIX + userToDelete.toLowerCase();
-      const sessKey = STORAGE_KEY_SESSIONS_PREFIX + userToDelete.toLowerCase();
-      localStorage.removeItem(msgsKey);
-      localStorage.removeItem(sessKey);
-
-      handleLogout();
-    }
-
-    // ==========================================
-    // SCREEN DISPLAY CONTROLLER
-    // ==========================================
-    function showAuthScreen() {
-      hideAllSections();
-      document.getElementById("page-auth").classList.add("active");
-      document.getElementById("app-bottom-nav").style.display = "none";
-      document.getElementById("top-user-indicator").style.display = "none";
-      document.getElementById("main-container").classList.add("no-nav");
-      renderSavedAccounts();
-    }
-
-    function showLoggedInApp() {
-      hideAllSections();
-      document.getElementById("page-share").classList.add("active");
-      document.getElementById("app-bottom-nav").style.display = "flex";
-      document.getElementById("top-user-indicator").style.display = "inline-flex";
-      document.getElementById("top-username-label").textContent = currentUser.username.toUpperCase();
-      document.getElementById("main-container").classList.remove("no-nav");
-
-      // Set active nav item
-      document.querySelectorAll(".nav-item").forEach((item, idx) => {
-        if (idx === 0) item.classList.add("active");
-        else item.classList.remove("active");
-      });
-
-      renderUI();
-    }
-
-    function setupVisitorMode(slug) {
-      hideAllSections();
-      document.getElementById("page-visitor-send").classList.add("active");
-      document.getElementById("app-bottom-nav").style.display = "none";
-      document.getElementById("top-user-indicator").style.display = "none";
-      document.getElementById("main-container").classList.add("no-nav");
-
-      // Check if user exists
-      const users = getUsersList();
-      const targetUser = users.find(u => u.username.toLowerCase() === slug.toLowerCase());
-
-      if (targetUser) {
-        document.getElementById("visitor-recipient-name").textContent = targetUser.username;
-        document.getElementById("visitor-recipient-bio").textContent = targetUser.bio;
-        document.getElementById("visitor-recipient-avatar").textContent = targetUser.avatar || "🔒";
-      } else {
-        document.getElementById("visitor-recipient-name").textContent = "@" + slug;
-        document.getElementById("visitor-recipient-bio").textContent = "Posez-lui une question ou dites-lui un secret en toute liberté !";
-        document.getElementById("visitor-recipient-avatar").textContent = "🔒";
-      }
-    }
-
-    function showAuthFromVisitor() {
-      // Clear URL query to return to normal
-      window.history.replaceState({}, document.title, window.location.pathname);
-      showAuthScreen();
-    }
-
-    function hideAllSections() {
-      document.querySelectorAll(".page-section").forEach(sec => sec.classList.remove("active"));
-    }
-
-    function switchPage(pageId, navEl) {
-      hideAllSections();
-      const target = document.getElementById("page-" + pageId);
-      if (target) target.classList.add("active");
-
-      document.querySelectorAll(".nav-item").forEach(item => item.classList.remove("active"));
-      if (navEl) navEl.classList.add("active");
-
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    // ==========================================
-    // UI RENDERING
-    // ==========================================
-    function renderUI() {
-      if (!currentUser) return;
-
-      // Header & Profile Card
-      document.getElementById("user-display-name").textContent = currentUser.username;
-      document.getElementById("user-bio").textContent = currentUser.bio;
-      document.getElementById("user-avatar").textContent = currentUser.avatar || "🔒";
-      document.getElementById("settings-avatar").textContent = currentUser.avatar || "🔒";
-      document.getElementById("settings-username").textContent = currentUser.username;
-      document.getElementById("settings-email").textContent = currentUser.email;
-      document.getElementById("input-edit-username").value = currentUser.username;
-      document.getElementById("input-edit-bio").value = currentUser.bio;
-
-      // Public Link URL - points to the dedicated send.html platform for this pseudonym
-      const basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-      const host = window.location.origin + basePath;
-      const shareUrl = `${host}send.html?to=${encodeURIComponent(currentUser.username.toLowerCase())}`;
-      document.getElementById("public-link-url").textContent = shareUrl;
-
-      // Metrics
-      const totalCount = messages.length;
-      document.getElementById("total-messages-count").textContent = totalCount < 10 ? "0" + totalCount : totalCount;
-
-      const unreadCount = messages.filter(m => !m.isRead).length;
-      document.getElementById("unread-counter-text").textContent = `${unreadCount} non lu${unreadCount > 1 ? 's' : ''}`;
-      const badge = document.getElementById("nav-badge");
-      if (unreadCount > 0) {
-        badge.style.display = "block";
-        badge.textContent = unreadCount;
-      } else {
-        badge.style.display = "none";
-      }
-
-      renderMessages();
-      renderSessions();
-    }
-
-    function renderMessages() {
-      const container = document.getElementById("messages-list");
-      container.innerHTML = "";
-
-      let filtered = messages;
-      if (currentFilter === "unread") {
-        filtered = messages.filter(m => !m.isRead);
-      } else if (currentFilter === "favorites") {
-        filtered = messages.filter(m => m.isFavorite);
-      } else if (currentFilter === "unlocked") {
-        filtered = messages.filter(m => isMessageUnlocked(m));
-      }
-
-      if (filtered.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--text-muted);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
-            <div style="font-weight: 700; color: var(--text-primary);">Boîte de réception vide</div>
-            <div style="font-size: 12px; color: var(--text-secondary);">Partagez votre lien secret sur vos réseaux pour recevoir des messages anonymes !</div>
-          </div>
-        `;
-        return;
-      }
-
-      filtered.forEach(msg => {
-        const unlocked = isMessageUnlocked(msg);
-        const remaining = getRemainingTime(msg);
-        const card = document.createElement("div");
-        card.className = `message-card ${!msg.isRead ? 'unread' : ''}`;
-        card.onclick = () => openMessageDetail(msg.id);
-
-        card.innerHTML = `
-          <div class="msg-top">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span class="tag-badge">#${msg.tag.toUpperCase()}</span>
-              ${!msg.isRead ? '<span style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary);"></span>' : ''}
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span class="msg-date">${formatDate(msg.receivedAt)}</span>
-              <span onclick="toggleFavorite(event, '${msg.id}')" style="cursor: pointer; font-size: 16px;">
-                ${msg.isFavorite ? '⭐' : '☆'}
-              </span>
-            </div>
-          </div>
-          <div class="msg-content">${escapeHtml(msg.content)}</div>
-          <div class="countdown-pill ${unlocked ? 'unlocked' : ''}">
-            <span>${unlocked ? '🔓 Identité révélée' : '⏳ Compte à rebours :'}</span>
-            <span class="countdown-timer" id="timer-${msg.id}">
-              ${unlocked ? 'Déverrouillé !' : formatCountdown(remaining)}
-            </span>
-          </div>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    function renderSessions() {
-      const container = document.getElementById("sessions-container");
-      container.innerHTML = "";
-
-      sessions.forEach(sess => {
-        const card = document.createElement("div");
-        card.className = "bento-card";
-        card.style.padding = "16px";
-
-        card.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary-container); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 800;">
-                💻
-              </div>
-              <div>
-                <div style="font-size: 13px; font-weight: 700;">${sess.deviceInfo}</div>
-                <div style="font-size: 11px; color: var(--text-muted);">${formatDate(sess.loginTime)}</div>
-              </div>
-            </div>
-            <span class="tag-badge" style="background: ${sess.isCurrent ? '#ECFDF5' : '#F1F5F9'}; color: ${sess.isCurrent ? '#065F46' : 'var(--text-secondary)'};">
-              ${sess.isCurrent ? 'Session Actuelle' : (sess.isActive ? 'Active' : 'Révoquée')}
-            </span>
-          </div>
-          <div class="sensitive-box" style="margin-top: 8px;">
-            <div class="detail-row">
-              <span class="detail-label">Statut sécurité :</span>
-              <span class="detail-val">${sess.ipAddress}</span>
-            </div>
-          </div>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    // ==========================================
-    // ANONYMOUS MESSAGE SENDING
-    // ==========================================
-    function openSendAnonymousModal() {
-      document.getElementById("send-content").value = "";
-      document.getElementById("send-sender-name").value = "";
-      document.getElementById("send-sender-contact").value = "";
-      document.getElementById("send-sender-hint").value = "";
-      openModal("modal-send");
-    }
-
-    function submitAnonymousMessage() {
-      const content = document.getElementById("send-content").value.trim();
-      const tag = document.getElementById("send-tag").value;
-      const senderName = document.getElementById("send-sender-name").value.trim();
-      const senderContact = document.getElementById("send-sender-contact").value.trim();
-      const senderHint = document.getElementById("send-sender-hint").value.trim();
-
-      if (!content) {
-        showToast("Veuillez saisir votre message secret.");
-        return;
-      }
-
-      const newMsg = {
-        id: "msg_" + Date.now(),
-        tag: tag,
-        content: content,
-        senderName: senderName || "Anonyme",
-        senderContact: senderContact || "Non communiqué",
-        senderHint: senderHint || "Aucun indice",
-        receivedAt: Date.now(),
-        isRead: false,
-        isFavorite: false
-      };
-
-      messages.unshift(newMsg);
-      saveUserMessages();
-      closeModal("modal-send");
-      renderUI();
-      showToast("Message anonyme envoyé avec succès !");
-    }
-
-    function submitVisitorAnonymousMessage() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const recipientSlug = urlParams.get('to');
-      if (!recipientSlug) return;
-
-      const content = document.getElementById("visitor-msg-content").value.trim();
-      const tag = document.getElementById("visitor-msg-tag").value;
-      const senderName = document.getElementById("visitor-sender-name").value.trim();
-      const senderContact = document.getElementById("visitor-sender-contact").value.trim();
-      const senderHint = document.getElementById("visitor-sender-hint").value.trim();
-
-      if (!content) {
-        showToast("Veuillez saisir votre message secret.");
-        return;
-      }
-
-      const newMsg = {
-        id: "msg_" + Date.now(),
-        tag: tag,
-        content: content,
-        senderName: senderName || "Anonyme",
-        senderContact: senderContact || "Non communiqué",
-        senderHint: senderHint || "Aucun indice",
-        receivedAt: Date.now(),
-        isRead: false,
-        isFavorite: false
-      };
-
-      // Store in recipient's message bucket
-      const msgsKey = STORAGE_KEY_MSGS_PREFIX + recipientSlug.toLowerCase();
-      let recipientMsgs = [];
-      try {
-        recipientMsgs = JSON.parse(localStorage.getItem(msgsKey)) || [];
-      } catch(e) { recipientMsgs = []; }
-
-      recipientMsgs.unshift(newMsg);
-      localStorage.setItem(msgsKey, JSON.stringify(recipientMsgs));
-
-      // Reset form
-      document.getElementById("visitor-msg-content").value = "";
-      document.getElementById("visitor-sender-name").value = "";
-      document.getElementById("visitor-sender-contact").value = "";
-      document.getElementById("visitor-sender-hint").value = "";
-
-      showToast("Votre message anonyme a été transmis !");
-    }
-
-    // ==========================================
-    // DETAIL MODAL & COUNTDOWN ENGINE
-    // ==========================================
-    function openMessageDetail(id) {
-      selectedMessageId = id;
-      const msg = messages.find(m => m.id === id);
-      if (!msg) return;
-
-      if (!msg.isRead) {
-        msg.isRead = true;
-        saveUserMessages();
-        renderUI();
-      }
-
-      document.getElementById("detail-tag").textContent = "#" + msg.tag.toUpperCase();
-      document.getElementById("detail-content").textContent = msg.content;
-      document.getElementById("detail-date").textContent = "Reçu le " + formatDate(msg.receivedAt);
-
-      updateModalDetailCountdown(msg);
-      openModal("modal-detail");
-    }
-
-    function updateModalDetailCountdown(msg) {
-      const unlocked = isMessageUnlocked(msg);
-      const remaining = getRemainingTime(msg);
-      const timerEl = document.getElementById("detail-timer");
-      const statusTitle = document.getElementById("detail-status-title");
-      const card = document.getElementById("detail-countdown-card");
-      const progressFill = document.getElementById("detail-progress-fill");
-
-      if (unlocked) {
-        statusTitle.textContent = "Identité déverrouillée (4 jours écoulés)";
-        timerEl.textContent = "DÉVERROUILLÉ 🔓";
-        timerEl.style.color = "var(--success-text)";
-        card.style.background = "var(--success-bg)";
-        progressFill.style.width = "100%";
-        progressFill.style.background = "var(--success-text)";
-
-        // Show Real Identity
-        document.getElementById("detail-sender-name").textContent = msg.senderName || "Anonyme";
-        document.getElementById("detail-sender-contact").textContent = msg.senderContact || "Non communiqué";
-        document.getElementById("detail-sender-hint").textContent = msg.senderHint || "Aucun indice";
-        document.getElementById("detail-protocol-desc").textContent = "Les coordonnées ont été déchiffrées automatiquement.";
-      } else {
-        statusTitle.textContent = "Compte à rebours 4 jours";
-        timerEl.textContent = formatCountdown(remaining);
-        timerEl.style.color = "var(--primary)";
-        card.style.background = "var(--primary-container)";
-        const elapsed = Date.now() - msg.receivedAt;
-        const pct = Math.min(100, Math.max(0, (elapsed / PROTOCOL_DURATION_MS) * 100));
-        progressFill.style.width = pct.toFixed(1) + "%";
-        progressFill.style.background = "var(--primary)";
-
-        // Keep Identity Hidden
-        document.getElementById("detail-sender-name").textContent = "•••••••••••• (Scellé 4j)";
-        document.getElementById("detail-sender-contact").textContent = "•••••••••••• (Scellé 4j)";
-        document.getElementById("detail-sender-hint").textContent = "•••••••••••• (Scellé 4j)";
-        document.getElementById("detail-protocol-desc").textContent = "Les coordonnées de l'expéditeur sont scellées jusqu'à la fin des 96h.";
-      }
-    }
-
-    function deleteCurrentMessage() {
-      if (!selectedMessageId) return;
-      messages = messages.filter(m => m.id !== selectedMessageId);
-      saveUserMessages();
-      closeModal("modal-detail");
-      renderUI();
-      showToast("Message supprimé.");
-    }
-
-    function toggleFavorite(e, id) {
-      e.stopPropagation();
-      const msg = messages.find(m => m.id === id);
-      if (msg) {
-        msg.isFavorite = !msg.isFavorite;
-        saveUserMessages();
-        renderUI();
-      }
-    }
-
-    function setFilter(filter) {
-      currentFilter = filter;
-      document.querySelectorAll(".filter-chips .chip").forEach(c => c.classList.remove("active"));
-      if (event && event.target) event.target.classList.add("active");
-      renderMessages();
-    }
-
-    function revokeOtherSessions() {
-      if (!currentUser) return;
-      sessions = sessions.map(s => {
-        if (!s.isCurrent) s.isActive = false;
-        return s;
-      });
-      saveUserSessions();
-      renderSessions();
-      showToast("Toutes les autres sessions ont été révoquées.");
-    }
-
-    async function saveProfileChanges() {
-      if (!currentUser) return;
-      const newUsername = document.getElementById("input-edit-username").value.trim();
-      const newBio = document.getElementById("input-edit-bio").value.trim();
-
-      if (!newUsername) {
-        showToast("Le nom d'utilisateur ne peut pas être vide.");
-        return;
-      }
-
-      const oldUsername = currentUser.username;
-      currentUser.username = newUsername;
-      currentUser.bio = newBio;
-      localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(currentUser));
-
-      const users = getUsersList().map(u => u.id === currentUser.id ? currentUser : u);
-      saveUsersList(users);
-
-      // Update in Firebase Cloud
-      await saveUserToCloud(currentUser);
-      if (oldUsername !== newUsername && firebaseDb) {
-        // If username changed, update cloud listener
-        listenToUserCloudData(newUsername);
-      }
-
-      renderUI();
-      showToast("Profil mis à jour et synchronisé sur le Cloud !");
-    }
-
-    // ==========================================
-    // UTILITIES
-    // ==========================================
-    function isMessageUnlocked(msg) {
-      return (Date.now() - msg.receivedAt) >= PROTOCOL_DURATION_MS;
-    }
-
-    function getRemainingTime(msg) {
-      const diff = (msg.receivedAt + PROTOCOL_DURATION_MS) - Date.now();
-      return diff > 0 ? diff : 0;
     }
 
     function formatCountdown(ms) {
@@ -2249,81 +1751,1120 @@
       const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
       const seconds = totalSeconds % 60;
-      return `${days}j ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+      return `${days}j ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
     }
 
-    function formatDate(ts) {
-      const d = new Date(ts);
-      return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    function formatDateShort(ms) {
+      const d = new Date(ms || Date.now());
+      return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
     }
 
-    function escapeHtml(str) {
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    function formatDateLong(timestampOrMs) {
+      let d;
+      if (timestampOrMs && typeof timestampOrMs.toDate === "function") {
+        d = timestampOrMs.toDate();
+      } else if (typeof timestampOrMs === "number") {
+        d = new Date(timestampOrMs);
+      } else {
+        d = new Date();
+      }
+      return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
     }
 
-    function tickCountdown() {
-      messages.forEach(msg => {
-        const el = document.getElementById(`timer-${msg.id}`);
-        if (el) {
-          if (isMessageUnlocked(msg)) {
-            el.textContent = "Déverrouillé !";
-            el.parentElement.classList.add("unlocked");
-          } else {
-            el.textContent = formatCountdown(getRemainingTime(msg));
+    function isMessageUnlocked(msg) {
+      return Boolean(msg.revealedManually) || Date.now() >= Number(msg.unlockAtMillis || 0);
+    }
+
+    function getRemainingMillis(msg) {
+      if (msg.revealedManually) return 0;
+      return Math.max(0, Number(msg.unlockAtMillis || 0) - Date.now());
+    }
+
+    function renderAvatarInto(el, uriOrPreset, username) {
+      if (!el) return;
+      const val = String(uriOrPreset || "preset_1");
+      const letter = (username || "U").trim().charAt(0).toUpperCase() || "U";
+      const isWebUrl = val.startsWith("http://") || val.startsWith("https://") || val.startsWith("data:image/");
+
+      if (isWebUrl) {
+        const colors = AVATAR_PRESETS.preset_1;
+        el.style.background = `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`;
+        el.innerHTML = "";
+        const img = document.createElement("img");
+        img.src = val;
+        img.alt = `Photo de profil de ${username || "Utilisateur"}`;
+        img.referrerPolicy = "no-referrer";
+        img.onerror = () => {
+          el.innerHTML = "";
+          el.textContent = letter;
+        };
+        el.appendChild(img);
+      } else {
+        const colors = AVATAR_PRESETS[val] || AVATAR_PRESETS.preset_1;
+        el.innerHTML = "";
+        el.style.background = `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`;
+        el.textContent = letter;
+      }
+    }
+
+    function getPublicShareUrl(slug) {
+      const basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/") + 1);
+      return `${window.location.origin}${basePath}send.html?to=${encodeURIComponent(slug || "")}`;
+    }
+
+    function getBrowserDeviceInfo() {
+      const ua = navigator.userAgent || "";
+      let device = "Navigateur Desktop";
+      if (/Android/i.test(ua)) device = "Appareil Web Android";
+      else if (/iPhone|iPad|iPod/i.test(ua)) device = "Appareil Web iOS";
+      else if (/Mobile/i.test(ua)) device = "Smartphone Web";
+
+      let browser = "Navigateur Web";
+      if (/Edg\//i.test(ua)) browser = "Microsoft Edge";
+      else if (/Chrome\//i.test(ua)) browser = "Google Chrome";
+      else if (/Firefox\//i.test(ua)) browser = "Mozilla Firefox";
+      else if (/Safari\//i.test(ua)) browser = "Safari";
+
+      return {
+        deviceName: device.slice(0, 100),
+        osVersion: `${browser} (${navigator.platform || "Web"})`.slice(0, 80)
+      };
+    }
+
+    function generateSessionToken() {
+      const chars = "abcdef0123456789";
+      let out = "sess_";
+      for (let i = 0; i < 32; i++) {
+        out += chars[Math.floor(Math.random() * chars.length)];
+      }
+      return out;
+    }
+
+    // Check redirect to send.html if ?to= is present
+    const initialParams = new URLSearchParams(window.location.search);
+    const redirectSlug = initialParams.get("to") || initialParams.get("u");
+    if (redirectSlug) {
+      window.location.replace(`send.html?to=${encodeURIComponent(redirectSlug)}`);
+    }
+
+    // Listener teardown
+    function detachFirestoreListeners() {
+      if (unsubProfile) { unsubProfile(); unsubProfile = null; }
+      if (unsubMessages) { unsubMessages(); unsubMessages = null; }
+      if (unsubSessions) { unsubSessions(); unsubSessions = null; }
+      userProfile = null;
+      messages = [];
+      sessions = [];
+      currentSessionId = null;
+      knownMessageIds = new Set();
+      initialMessagesLoaded = false;
+    }
+
+    // Firestore initialization matching Android AppRepository.kt
+    async function ensureUserProfileAndSession(firebaseUser) {
+      const uid = firebaseUser.uid;
+      const userRef = doc(db, "users", uid);
+      const snap = await getDoc(userRef);
+
+      let displayUsername = "Utilisateur";
+      if (!snap.exists()) {
+        const rawName = (firebaseUser.displayName || "").trim()
+          || (firebaseUser.email || "").split("@")[0].trim()
+          || "Utilisateur";
+        let cleanUsername = rawName.slice(0, 40) || "Utilisateur";
+        if (cleanUsername.length < 2) cleanUsername = `${cleanUsername}_user`;
+
+        const cleanEmail = (firebaseUser.email || "").slice(0, 150);
+        const cleanPhoto = (firebaseUser.photoURL || "preset_1").slice(0, 500);
+        const slugBase = cleanUsername.toLowerCase()
+          .replace(/[^a-z0-9]+/g, "_")
+          .replace(/^_+|_+$/g, "")
+          .slice(0, 40) || "user";
+        const slug = `${slugBase}_${uid.slice(0, 6).toLowerCase()}`;
+        const defaultBio = "Laissez-moi un message anonyme en toute liberté !";
+
+        await setDoc(userRef, {
+          userId: uid,
+          username: cleanUsername,
+          email: cleanEmail,
+          profilePicUri: cleanPhoto,
+          bio: defaultBio,
+          uniqueLinkSlug: slug,
+          linkActive: true,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+
+        await setDoc(doc(db, "publicLinks", slug), {
+          slug: slug,
+          ownerId: uid,
+          username: cleanUsername,
+          profilePicUri: cleanPhoto,
+          bio: defaultBio,
+          linkActive: true,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+
+        const now = Math.floor(Date.now());
+        await addDoc(collection(db, "users", uid, "messages"), {
+          userId: uid,
+          messageText: "Bienvenue sur votre plateforme de messagerie anonyme ! Vos messages et sessions sont désormais synchronisés en temps réel sur Cloud Firestore.",
+          receivedAtMillis: now,
+          unlockAtMillis: now + FOUR_DAYS_MS,
+          senderPseudo: "Équipe Sécurité",
+          senderCoordinates: "Support vérifié Cloud Firestore",
+          senderDeviceInfo: "Serveur Central Chiffré",
+          tag: "Bienvenue",
+          read: false,
+          favorite: true,
+          revealedManually: false,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+
+        displayUsername = cleanUsername;
+      } else {
+        const data = snap.data();
+        displayUsername = (data.username || "Utilisateur").slice(0, 40);
+        if (data.uniqueLinkSlug) {
+          const publicRef = doc(db, "publicLinks", data.uniqueLinkSlug);
+          const publicSnap = await getDoc(publicRef);
+          if (!publicSnap.exists()) {
+            await setDoc(publicRef, {
+              slug: data.uniqueLinkSlug,
+              ownerId: uid,
+              username: displayUsername,
+              profilePicUri: (data.profilePicUri || "preset_1").slice(0, 500),
+              bio: (data.bio || "").slice(0, 300),
+              linkActive: data.linkActive !== false,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            });
           }
         }
-      });
-
-      if (selectedMessageId) {
-        const msg = messages.find(m => m.id === selectedMessageId);
-        if (msg) updateModalDetailCountdown(msg);
       }
-    }
 
-    function copySecretLink() {
-      const url = document.getElementById("public-link-url").textContent;
-      navigator.clipboard.writeText(url).then(() => {
-        showToast("Lien secret copié dans le presse-papiers !");
-      }).catch(() => {
-        showToast("Lien copié : " + url);
-      });
-    }
+      const sessionStorageKey = `secretlink_session_id_${uid}`;
+      const savedSessionId = sessionStorage.getItem(sessionStorageKey);
+      let reusedSessionId = null;
 
-    function shareSecretLink() {
-      const url = document.getElementById("public-link-url").textContent;
-      if (navigator.share) {
-        navigator.share({
-          title: "Mon Lien SecretLink",
-          text: "Envoyez-moi un message anonyme ! Votre identité sera révélée dans 4 jours.",
-          url: url
-        }).catch(() => copySecretLink());
+      if (savedSessionId) {
+        try {
+          const existingSessSnap = await getDoc(doc(db, "users", uid, "sessions", savedSessionId));
+          if (existingSessSnap.exists() && existingSessSnap.data()?.active === true) {
+            reusedSessionId = savedSessionId;
+          }
+        } catch (e) {
+          console.warn("Saved session check ignored:", e);
+        }
+      }
+
+      if (reusedSessionId) {
+        currentSessionId = reusedSessionId;
       } else {
-        copySecretLink();
+        const { deviceName, osVersion } = getBrowserDeviceInfo();
+        const randOctet = Math.floor(Math.random() * 230) + 10;
+        const sessRef = await addDoc(collection(db, "users", uid, "sessions"), {
+          userId: uid,
+          username: displayUsername,
+          deviceName,
+          osVersion,
+          ipAddress: `192.168.1.${randOctet} (HTTPS-Chiffré)`,
+          locationEstimate: "Google Sign-In • Cloud Firestore",
+          active: true,
+          sessionToken: generateSessionToken(),
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        currentSessionId = sessRef.id;
+        sessionStorage.setItem(sessionStorageKey, currentSessionId);
       }
+    }
+
+    function attachFirestoreListeners(uid) {
+      setCloudStatus(true, "Synchronisation...");
+
+      unsubProfile = onSnapshot(doc(db, "users", uid), (snap) => {
+        if (snap.exists()) {
+          userProfile = { id: snap.id, ...snap.data() };
+          setCloudStatus(true, "Cloud Sync");
+          renderAllUI();
+        }
+      }, (err) => {
+        console.error("Profile listener error:", err);
+        setCloudStatus(false, "Erreur Cloud");
+        showToast("Erreur Firestore profil : " + (err?.code || err?.message || err));
+      });
+
+      const msgsQuery = query(
+        collection(db, "users", uid, "messages"),
+        orderBy("receivedAtMillis", "desc")
+      );
+      unsubMessages = onSnapshot(msgsQuery, (snap) => {
+        const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (initialMessagesLoaded) {
+          list.forEach(m => {
+            if (!knownMessageIds.has(m.id)) {
+              maybeNotifyNewMessage(m);
+            }
+          });
+        }
+        knownMessageIds = new Set(list.map(m => m.id));
+        initialMessagesLoaded = true;
+        messages = list;
+        renderMessages();
+        renderMetrics();
+        if (selectedMessageId) {
+          const active = messages.find(m => m.id === selectedMessageId);
+          if (active) updateMessageDetailModal(active);
+        }
+      }, (err) => {
+        console.error("Messages listener error:", err);
+        setCloudStatus(false, "Erreur Cloud");
+      });
+
+      const sessQuery = query(
+        collection(db, "users", uid, "sessions"),
+        orderBy("createdAt", "desc")
+      );
+      unsubSessions = onSnapshot(sessQuery, (snap) => {
+        sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderSessions();
+        renderMetrics();
+      }, (err) => {
+        console.error("Sessions listener error:", err);
+      });
+    }
+
+    function maybeNotifyNewMessage(msg) {
+      const notifToggle = document.getElementById("toggle-notifications");
+      if (!notifToggle || !notifToggle.checked) return;
+      showToast(`Nouveau message anonyme (#${msg.tag}) !`);
+      if ("Notification" in window && Notification.permission === "granted") {
+        try {
+          new Notification("Nouveau message SecretLink", {
+            body: `#${msg.tag} : ${String(msg.messageText || "").slice(0, 80)}`
+          });
+        } catch (_) {}
+      }
+    }
+
+    // Navigation & Views
+    function hideAllSections() {
+      document.querySelectorAll(".page-section").forEach(s => s.classList.remove("active"));
+    }
+
+    function showAuthScreen() {
+      hideAllSections();
+      document.getElementById("page-auth").classList.add("active");
+      document.getElementById("app-bottom-nav").style.display = "none";
+      document.getElementById("top-user-indicator").style.display = "none";
+      document.getElementById("main-container").classList.add("no-nav");
+    }
+
+    function showLoggedInApp() {
+      hideAllSections();
+      document.getElementById("page-share").classList.add("active");
+      document.getElementById("app-bottom-nav").style.display = "flex";
+      document.getElementById("top-user-indicator").style.display = "inline-flex";
+      document.getElementById("main-container").classList.remove("no-nav");
+      document.querySelectorAll(".nav-item").forEach(item => {
+        item.classList.toggle("active", item.dataset.page === "share");
+      });
+    }
+
+    function switchPage(pageId) {
+      hideAllSections();
+      const target = document.getElementById("page-" + pageId);
+      if (target) target.classList.add("active");
+      document.querySelectorAll(".nav-item").forEach(item => {
+        item.classList.toggle("active", item.dataset.page === pageId);
+      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     function openModal(id) {
-      const el = document.getElementById(id);
-      if (el) el.classList.add("active");
+      document.getElementById(id)?.classList.add("active");
     }
-
     function closeModal(id) {
-      const el = document.getElementById(id);
-      if (el) el.classList.remove("active");
+      document.getElementById(id)?.classList.remove("active");
       if (id === "modal-detail") selectedMessageId = null;
     }
 
-    function showToast(text) {
-      const toast = document.getElementById("toast");
-      document.getElementById("toast-text").textContent = text;
-      toast.style.display = "flex";
-      setTimeout(() => {
-        toast.style.display = "none";
-      }, 2600);
+    // Rendering
+    function renderAllUI() {
+      if (!userProfile) return;
+
+      document.getElementById("top-username-label").textContent = (userProfile.username || "CONNECTÉ").toUpperCase();
+      document.getElementById("user-display-name").textContent = userProfile.username || "Utilisateur";
+      document.getElementById("user-bio").textContent = (userProfile.bio || "").trim() || "Messagerie anonyme active";
+      renderAvatarInto(document.getElementById("hero-avatar"), userProfile.profilePicUri, userProfile.username);
+
+      const active = userProfile.linkActive !== false;
+      document.getElementById("hero-link-dot").style.background = active ? "#10B981" : "#F59E0B";
+      document.getElementById("hero-link-label").textContent = active ? "Actif" : "En pause";
+
+      const shareUrl = getPublicShareUrl(userProfile.uniqueLinkSlug);
+      document.getElementById("public-link-url").textContent = shareUrl;
+      document.getElementById("open-public-page-btn").href = `send.html?to=${encodeURIComponent(userProfile.uniqueLinkSlug || "")}`;
+
+      renderAvatarInto(document.getElementById("settings-avatar"), userProfile.profilePicUri, userProfile.username);
+      document.getElementById("settings-username").textContent = userProfile.username || "";
+      document.getElementById("settings-email").textContent = userProfile.email || "";
+      document.getElementById("settings-slug").textContent = `Slug : @${userProfile.uniqueLinkSlug || ""}`;
+      document.getElementById("toggle-link-active").checked = active;
+      const uidLabel = document.getElementById("settings-firebase-uid");
+      if (uidLabel && currentFirebaseUser) uidLabel.textContent = `UID : ${currentFirebaseUser.uid}`;
+
+      renderMetrics();
+      renderMessages();
+      renderSessions();
     }
 
-    // Start App
-    window.addEventListener("DOMContentLoaded", initApp);
+    function renderMetrics() {
+      const total = messages.length;
+      document.getElementById("total-messages-count").textContent = String(total).padStart(2, "0");
+      document.getElementById("inbox-total-sub").textContent = `${total} message(s) anonyme(s)`;
+      document.getElementById("settings-firestore-stats").textContent = `${sessions.length} session(s) • ${total} message(s)`;
+
+      const unread = messages.filter(m => !m.read).length;
+      const badge = document.getElementById("nav-badge");
+      if (unread > 0) {
+        badge.style.display = "inline-block";
+        badge.textContent = String(unread);
+      } else {
+        badge.style.display = "none";
+      }
+    }
+
+    function renderMessages() {
+      const container = document.getElementById("messages-list");
+      container.innerHTML = "";
+
+      let filtered = messages;
+      if (currentFilter === "UNREAD") filtered = messages.filter(m => !m.read);
+      else if (currentFilter === "FAVORITES") filtered = messages.filter(m => m.favorite);
+      else if (currentFilter === "UNLOCKED") filtered = messages.filter(m => isMessageUnlocked(m));
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state bento-card">
+            <div style="width: 64px; height: 64px; border-radius: 50%; background: #EBF3FF; display: flex; align-items: center; justify-content: center; color: var(--primary);">
+              <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            </div>
+            <div style="font-weight: 800; color: var(--text-primary); font-size: 16px;">Aucun message anonyme ici</div>
+            <div style="font-size: 12.5px; color: var(--text-secondary); max-width: 320px;">Partagez votre lien public pour commencer à recevoir des messages synchronisés sur Cloud Firestore !</div>
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(msg => {
+        const unlocked = isMessageUnlocked(msg);
+        const remaining = getRemainingMillis(msg);
+
+        const card = document.createElement("div");
+        card.className = `message-card ${!msg.read ? "unread" : ""}`;
+        card.addEventListener("click", () => openMessageDetail(msg.id));
+
+        const topRow = document.createElement("div");
+        topRow.className = "msg-top";
+
+        const leftGroup = document.createElement("div");
+        leftGroup.style.cssText = "display:flex;align-items:center;gap:8px;";
+        const tagSpan = document.createElement("span");
+        tagSpan.className = "tag-badge";
+        tagSpan.textContent = `#${String(msg.tag || "Secret").toUpperCase()}`;
+        leftGroup.appendChild(tagSpan);
+
+        if (!msg.read) {
+          const dot = document.createElement("span");
+          dot.style.cssText = "width:8px;height:8px;border-radius:50%;background:var(--primary);";
+          leftGroup.appendChild(dot);
+        }
+
+        const rightGroup = document.createElement("div");
+        rightGroup.style.cssText = "display:flex;align-items:center;gap:6px;";
+        const dateSpan = document.createElement("span");
+        dateSpan.className = "msg-date";
+        dateSpan.textContent = formatDateShort(msg.receivedAtMillis);
+        rightGroup.appendChild(dateSpan);
+
+        const favBtn = document.createElement("button");
+        favBtn.className = `fav-btn ${msg.favorite ? "is-fav" : ""}`;
+        favBtn.type = "button";
+        favBtn.setAttribute("aria-label", "Favori");
+        favBtn.textContent = msg.favorite ? "♥" : "♡";
+        favBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleFavorite(msg.id, Boolean(msg.favorite));
+        });
+        rightGroup.appendChild(favBtn);
+
+        topRow.appendChild(leftGroup);
+        topRow.appendChild(rightGroup);
+
+        const bodyDiv = document.createElement("div");
+        bodyDiv.className = "msg-content";
+        bodyDiv.textContent = msg.messageText || "";
+
+        const pill = document.createElement("div");
+        pill.className = `countdown-pill ${unlocked ? "unlocked" : ""}`;
+        const pillLeft = document.createElement("span");
+        pillLeft.textContent = unlocked ? "🔓 Coordonnées révélées" : "🔒 Révélation dans :";
+        const pillRight = document.createElement("span");
+        pillRight.className = "countdown-timer";
+        pillRight.id = `timer-${msg.id}`;
+        pillRight.textContent = unlocked ? "Voir coordonnées" : formatCountdown(remaining);
+        pill.appendChild(pillLeft);
+        pill.appendChild(pillRight);
+
+        card.appendChild(topRow);
+        card.appendChild(bodyDiv);
+        card.appendChild(pill);
+        container.appendChild(card);
+      });
+    }
+
+    function renderSessions() {
+      const container = document.getElementById("sessions-container");
+      container.innerHTML = "";
+      document.getElementById("sessions-count-header").textContent = `HISTORIQUE DÉTAILLÉ (${sessions.length})`;
+
+      const hasOtherActive = sessions.some(s => s.active && s.id !== currentSessionId);
+      document.getElementById("revoke-other-sessions-btn").style.display = hasOtherActive ? "inline-flex" : "none";
+
+      sessions.forEach(sess => {
+        const isCurrent = Boolean(currentSessionId && currentSessionId === sess.id);
+        const card = document.createElement("div");
+        card.className = "bento-card";
+        card.style.padding = "18px";
+        if (isCurrent) {
+          card.style.border = "1.5px solid var(--primary)";
+          card.style.background = "#FAFDFE";
+        }
+
+        const headerRow = document.createElement("div");
+        headerRow.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;";
+
+        const deviceInfo = document.createElement("div");
+        deviceInfo.style.cssText = "display:flex;align-items:center;gap:12px;min-width:0;";
+        const iconBox = document.createElement("div");
+        iconBox.style.cssText = `width:40px;height:40px;border-radius:50%;background:${isCurrent ? "var(--primary-container)" : "#F1F5F9"};color:${isCurrent ? "var(--primary)" : "var(--text-secondary)"};display:flex;align-items:center;justify-content:center;flex-shrink:0;`;
+        iconBox.innerHTML = `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>`;
+
+        const devText = document.createElement("div");
+        devText.style.minWidth = "0";
+        const devName = document.createElement("div");
+        devName.style.cssText = "font-size:14.5px;font-weight:700;color:var(--text-primary);";
+        devName.textContent = sess.deviceName || "Appareil";
+        const osVer = document.createElement("div");
+        osVer.style.cssText = "font-size:11px;color:var(--text-secondary);";
+        osVer.textContent = sess.osVersion || "";
+        devText.appendChild(devName);
+        devText.appendChild(osVer);
+        deviceInfo.appendChild(iconBox);
+        deviceInfo.appendChild(devText);
+
+        const statusBadge = document.createElement("span");
+        statusBadge.style.cssText = "font-size:11px;font-weight:700;padding:4px 10px;border-radius:12px;flex-shrink:0;";
+        if (isCurrent) {
+          statusBadge.style.background = "var(--success-bg)";
+          statusBadge.style.color = "var(--success-text)";
+          statusBadge.style.border = "1px solid var(--success-border)";
+          statusBadge.textContent = "● Actuelle";
+        } else if (sess.active) {
+          statusBadge.style.background = "#EFF6FF";
+          statusBadge.style.color = "var(--primary)";
+          statusBadge.textContent = "Active";
+        } else {
+          statusBadge.style.background = "#F1F5F9";
+          statusBadge.style.color = "var(--text-muted)";
+          statusBadge.textContent = "Déconnectée";
+        }
+
+        headerRow.appendChild(deviceInfo);
+        headerRow.appendChild(statusBadge);
+        card.appendChild(headerRow);
+
+        const box = document.createElement("div");
+        box.className = "sensitive-box";
+        const tokenPreview = String(sess.sessionToken || "").slice(0, 16) + "...";
+        const rows = [
+          ["Date de connexion :", formatDateLong(sess.createdAt || sess.updatedAt), false],
+          ["Adresse IP :", sess.ipAddress || "—", false],
+          ["Sécurité :", sess.locationEstimate || "Google Sign-In", false],
+          ["Jeton de session :", tokenPreview, true]
+        ];
+        rows.forEach(([label, val, mono]) => {
+          const r = document.createElement("div");
+          r.className = "detail-row";
+          const l = document.createElement("span");
+          l.className = "detail-label";
+          l.textContent = label;
+          const v = document.createElement("span");
+          v.className = mono ? "detail-val mono" : "detail-val";
+          v.textContent = val;
+          r.appendChild(l);
+          r.appendChild(v);
+          box.appendChild(r);
+        });
+        card.appendChild(box);
+
+        if (!isCurrent && sess.active) {
+          const btnWrap = document.createElement("div");
+          btnWrap.style.cssText = "display:flex;justify-content:flex-end;margin-top:12px;";
+          const revokeBtn = document.createElement("button");
+          revokeBtn.className = "btn btn-danger";
+          revokeBtn.style.cssText = "flex:none;min-height:38px;padding:6px 14px;font-size:12px;";
+          revokeBtn.textContent = "Révoquer la session";
+          revokeBtn.addEventListener("click", () => revokeSession(sess.id));
+          btnWrap.appendChild(revokeBtn);
+          card.appendChild(btnWrap);
+        }
+
+        container.appendChild(card);
+      });
+    }
+
+    // Message Actions
+    async function openMessageDetail(id) {
+      const msg = messages.find(m => m.id === id);
+      if (!msg || !currentFirebaseUser) return;
+      selectedMessageId = id;
+
+      if (!msg.read) {
+        try {
+          await updateDoc(doc(db, "users", currentFirebaseUser.uid, "messages", id), {
+            read: true,
+            updatedAt: serverTimestamp()
+          });
+        } catch (e) {
+          console.warn("Mark read error:", e);
+        }
+      }
+
+      updateMessageDetailModal(msg);
+      openModal("modal-detail");
+    }
+
+    function updateMessageDetailModal(msg) {
+      const unlocked = isMessageUnlocked(msg);
+      const remaining = getRemainingMillis(msg);
+
+      document.getElementById("detail-tag").textContent = `#${String(msg.tag || "Secret").toUpperCase()}`;
+      document.getElementById("detail-content").textContent = `"${msg.messageText || ""}"`;
+      document.getElementById("detail-pseudo").textContent = `— ${msg.senderPseudo || "Anonyme"}`;
+      document.getElementById("detail-date").textContent = `Reçu le ${formatDateShort(msg.receivedAtMillis)}`;
+
+      const card = document.getElementById("detail-countdown-card");
+      const titleEl = document.getElementById("detail-status-title");
+      const timerEl = document.getElementById("detail-timer");
+      const progressEl = document.getElementById("detail-progress-fill");
+      const descEl = document.getElementById("detail-protocol-desc");
+      const lockedBox = document.getElementById("detail-locked-placeholder");
+      const unlockedBox = document.getElementById("detail-unlocked-info");
+      const ffBtn = document.getElementById("fast-forward-unlock-btn");
+
+      if (unlocked) {
+        card.style.background = "var(--success-bg)";
+        card.style.borderColor = "var(--success-border)";
+        titleEl.style.color = "var(--success-text)";
+        titleEl.textContent = "🔓 Identité déverrouillée";
+        timerEl.style.display = "none";
+        progressEl.parentElement.style.display = "none";
+        descEl.style.color = "var(--success-text)";
+        descEl.textContent = "Le compte à rebours de 4 jours est écoulé. Les coordonnées chiffrées ont été décodées avec succès.";
+        lockedBox.style.display = "none";
+        unlockedBox.style.display = "flex";
+        document.getElementById("detail-sender-name").textContent = msg.senderPseudo || "Anonyme";
+        document.getElementById("detail-sender-coords").textContent = msg.senderCoordinates || "Non renseigné";
+        const devRow = document.getElementById("detail-device-row");
+        if (msg.senderDeviceInfo) {
+          devRow.style.display = "flex";
+          document.getElementById("detail-sender-device").textContent = msg.senderDeviceInfo;
+        } else {
+          devRow.style.display = "none";
+        }
+        ffBtn.style.display = "none";
+      } else {
+        card.style.background = "var(--primary-container)";
+        card.style.borderColor = "#B9D7FE";
+        titleEl.style.color = "var(--primary)";
+        titleEl.textContent = "🔒 Compte à rebours 4 jours";
+        timerEl.style.display = "block";
+        timerEl.textContent = formatCountdown(remaining);
+        progressEl.parentElement.style.display = "block";
+        const pct = Math.min(100, Math.max(0, ((FOUR_DAYS_MS - remaining) / FOUR_DAYS_MS) * 100));
+        progressEl.style.width = `${pct.toFixed(1)}%`;
+        descEl.style.color = "var(--text-secondary)";
+        descEl.textContent = "Les coordonnées de l'expéditeur sont scellées. Elles seront dévoilées à 0j 00h 00m 00s.";
+        lockedBox.style.display = "block";
+        unlockedBox.style.display = "none";
+        ffBtn.style.display = "inline-flex";
+      }
+    }
+
+    async function toggleFavorite(id, currentFav) {
+      if (!currentFirebaseUser) return;
+      try {
+        await updateDoc(doc(db, "users", currentFirebaseUser.uid, "messages", id), {
+          favorite: !currentFav,
+          updatedAt: serverTimestamp()
+        });
+      } catch (e) {
+        showToast("Impossible de modifier le favori.");
+      }
+    }
+
+    async function unlockMessageImmediately() {
+      if (!currentFirebaseUser || !selectedMessageId) return;
+      try {
+        await updateDoc(doc(db, "users", currentFirebaseUser.uid, "messages", selectedMessageId), {
+          revealedManually: true,
+          unlockAtMillis: Math.floor(Date.now()),
+          updatedAt: serverTimestamp()
+        });
+        showToast("Coordonnées déverrouillées sur Cloud Firestore !");
+      } catch (e) {
+        showToast("Erreur lors du déverrouillage.");
+      }
+    }
+
+    async function deleteSelectedMessage() {
+      if (!currentFirebaseUser || !selectedMessageId) return;
+      const targetId = selectedMessageId;
+      try {
+        await deleteDoc(doc(db, "users", currentFirebaseUser.uid, "messages", targetId));
+        closeModal("modal-detail");
+        showToast("Message supprimé.");
+      } catch (e) {
+        showToast("Erreur lors de la suppression.");
+      }
+    }
+
+    async function revokeSession(sessionId) {
+      if (!currentFirebaseUser) return;
+      try {
+        await updateDoc(doc(db, "users", currentFirebaseUser.uid, "sessions", sessionId), {
+          active: false,
+          updatedAt: serverTimestamp()
+        });
+        showToast("Session révoquée.");
+      } catch (e) {
+        showToast("Erreur lors de la révocation.");
+      }
+    }
+
+    async function revokeOtherSessions() {
+      if (!currentFirebaseUser) return;
+      try {
+        const q = query(
+          collection(db, "users", currentFirebaseUser.uid, "sessions"),
+          where("active", "==", true)
+        );
+        const snap = await getDocs(q);
+        for (const d of snap.docs) {
+          if (d.id !== currentSessionId) {
+            await updateDoc(d.ref, { active: false, updatedAt: serverTimestamp() });
+          }
+        }
+        showToast("Toutes les autres sessions ont été déconnectées.");
+      } catch (e) {
+        showToast("Erreur lors de la révocation groupée.");
+      }
+    }
+
+    async function updateProfileInFirestore(newUsername, newBio, newPhotoUri, newLinkActive) {
+      if (!currentFirebaseUser || !userProfile) return;
+      const uid = currentFirebaseUser.uid;
+      const cleanUsername = newUsername.trim();
+      if (cleanUsername.length < 2 || cleanUsername.length > 40) {
+        showToast("Le nom d'utilisateur doit contenir entre 2 et 40 caractères.");
+        return;
+      }
+      const cleanBio = newBio.trim().slice(0, 300);
+      const cleanPhoto = (newPhotoUri || "preset_1").trim().slice(0, 500) || "preset_1";
+
+      await updateDoc(doc(db, "users", uid), {
+        username: cleanUsername,
+        bio: cleanBio,
+        profilePicUri: cleanPhoto,
+        linkActive: Boolean(newLinkActive),
+        updatedAt: serverTimestamp()
+      });
+
+      if (userProfile.uniqueLinkSlug) {
+        const publicRef = doc(db, "publicLinks", userProfile.uniqueLinkSlug);
+        const publicSnap = await getDoc(publicRef);
+        if (publicSnap.exists()) {
+          await updateDoc(publicRef, {
+            username: cleanUsername,
+            bio: cleanBio,
+            profilePicUri: cleanPhoto,
+            linkActive: Boolean(newLinkActive),
+            updatedAt: serverTimestamp()
+          });
+        } else {
+          await setDoc(publicRef, {
+            slug: userProfile.uniqueLinkSlug,
+            ownerId: uid,
+            username: cleanUsername,
+            bio: cleanBio,
+            profilePicUri: cleanPhoto,
+            linkActive: Boolean(newLinkActive),
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+        }
+      }
+    }
+
+    function formatFirebaseAuthError(err) {
+      const code = err?.code || "";
+      const host = window.location.hostname || "localhost";
+      if (code === "auth/unauthorized-domain") {
+        return `Domaine non autorisé (${host}). Ajoutez "${host}" dans Firebase Console → Authentication → Settings → Authorized domains (projet : ${firebaseConfig.projectId}).`;
+      }
+      if (code === "auth/operation-not-supported-in-this-environment") {
+        return "La connexion Google ne fonctionne pas depuis un fichier local (file://). Ouvrez le site via HTTPS (ex: GitHub Pages ou serveur web).";
+      }
+      if (code === "auth/operation-not-allowed") {
+        return "Le fournisseur Google Sign-In doit être activé dans Firebase Console → Authentication → Sign-in method (projet : gen-lang-client-0373560860).";
+      }
+      if (code === "auth/network-request-failed") {
+        return "Erreur réseau : impossible de joindre les serveurs Firebase Authentication.";
+      }
+      return err?.message || "Échec de la connexion Google Firebase.";
+    }
+
+    // Auth Handlers
+    async function handleGoogleSignIn() {
+      const btn = document.getElementById("google-sign-in-btn");
+      showAuthAlert("");
+      if (window.location.protocol === "file:") {
+        showAuthAlert("Ouvrez cette page via HTTPS (ex: votre site GitHub Pages) pour utiliser Google Sign-In Firebase.");
+        return;
+      }
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner"></span><span>Connexion Firebase en cours...</span>`;
+
+      try {
+        await signInWithPopup(auth, googleProvider);
+      } catch (err) {
+        console.error("Google Sign-In error:", err);
+        if (err.code === "auth/popup-blocked") {
+          try {
+            showAuthAlert("Fenêtre popup bloquée, redirection Google en cours...", "info");
+            await signInWithRedirect(auth, googleProvider);
+            return;
+          } catch (redirectErr) {
+            showAuthAlert(formatFirebaseAuthError(redirectErr));
+          }
+        } else if (err.code !== "auth/popup-closed-by-user" && err.code !== "auth/cancelled-popup-request") {
+          showAuthAlert(formatFirebaseAuthError(err));
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z"/>
+          </svg>
+          <span>Se connecter avec Google</span>`;
+      }
+    }
+
+    async function handleGoogleRedirectSignIn() {
+      showAuthAlert("");
+      if (window.location.protocol === "file:") {
+        showAuthAlert("Ouvrez cette page via HTTPS (ex: votre site GitHub Pages) pour utiliser Google Sign-In Firebase.");
+        return;
+      }
+      try {
+        showAuthAlert("Redirection vers Google Sign-In Firebase...", "info");
+        await signInWithRedirect(auth, googleProvider);
+      } catch (err) {
+        console.error("Google Redirect Sign-In error:", err);
+        showAuthAlert(formatFirebaseAuthError(err));
+      }
+    }
+
+    async function handleSignOut() {
+      const uid = currentFirebaseUser?.uid;
+      const sessId = currentSessionId;
+      try {
+        if (uid && sessId) {
+          await updateDoc(doc(db, "users", uid, "sessions", sessId), {
+            active: false,
+            updatedAt: serverTimestamp()
+          });
+        }
+      } catch (e) {
+        console.warn("Session deactivate on logout:", e);
+      }
+      if (uid) sessionStorage.removeItem(`secretlink_session_id_${uid}`);
+      currentFirebaseUser = null;
+      detachFirestoreListeners();
+      await signOut(auth);
+      showToast("Déconnexion réussie.");
+    }
+
+    // Event Bindings
+    document.getElementById("google-sign-in-btn").addEventListener("click", handleGoogleSignIn);
+    document.getElementById("google-redirect-btn").addEventListener("click", handleGoogleRedirectSignIn);
+    document.getElementById("test-firebase-auth-btn").addEventListener("click", () => testFirebaseConnection(false));
+    document.getElementById("test-firebase-settings-btn").addEventListener("click", () => testFirebaseConnection(false));
+    document.getElementById("logout-btn").addEventListener("click", handleSignOut);
+
+    document.querySelectorAll(".nav-item").forEach(btn => {
+      btn.addEventListener("click", () => switchPage(btn.dataset.page));
+    });
+
+    document.querySelectorAll("[data-close-modal]").forEach(btn => {
+      btn.addEventListener("click", () => closeModal(btn.dataset.closeModal));
+    });
+
+    document.querySelectorAll(".modal-overlay").forEach(overlay => {
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) closeModal(overlay.id);
+      });
+    });
+
+    document.getElementById("copy-link-btn").addEventListener("click", () => {
+      const url = document.getElementById("public-link-url").textContent;
+      navigator.clipboard.writeText(url).then(() => {
+        showToast("Lien copié dans le presse-papiers !");
+      }).catch(() => showToast("Lien : " + url));
+    });
+
+    document.getElementById("share-link-btn").addEventListener("click", () => {
+      const url = document.getElementById("public-link-url").textContent;
+      if (navigator.share) {
+        navigator.share({
+          title: "Mon lien anonyme SecretLink",
+          text: `Écris-moi un message anonyme, pose-moi une question ou fais une confession ! Mes coordonnées restent secrètes 4 jours : ${url}`,
+          url
+        }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(url).then(() => showToast("Lien copié pour le partage !"));
+      }
+    });
+
+    document.getElementById("open-simulate-btn").addEventListener("click", () => {
+      document.getElementById("send-content").value = "";
+      document.getElementById("send-sender-pseudo").value = "";
+      document.getElementById("send-sender-coords").value = "";
+      document.getElementById("simulate-modal-subtitle").textContent =
+        `Ce formulaire simule ce qu'un internaute envoie via votre lien partagé à ${userProfile?.username || "vous"}.`;
+      openModal("modal-send");
+    });
+
+    document.querySelectorAll("#simulate-tag-grid .tag-select-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        selectedSimulateTag = btn.dataset.tag;
+        document.querySelectorAll("#simulate-tag-grid .tag-select-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+      });
+    });
+
+    document.getElementById("confirm-simulate-send-btn").addEventListener("click", async () => {
+      if (!currentFirebaseUser) return;
+      const msgText = document.getElementById("send-content").value.trim();
+      const pseudo = document.getElementById("send-sender-pseudo").value.trim() || "Anonyme mystère";
+      const coords = document.getElementById("send-sender-coords").value.trim() || "Contact anonyme non spécifié";
+      if (!msgText) {
+        showToast("Veuillez saisir votre message secret.");
+        return;
+      }
+
+      const safeTag = ALLOWED_TAGS.includes(selectedSimulateTag) ? selectedSimulateTag : "Secret";
+      const now = Math.floor(Date.now());
+      const { deviceName, osVersion } = getBrowserDeviceInfo();
+
+      try {
+        await addDoc(collection(db, "users", currentFirebaseUser.uid, "messages"), {
+          userId: currentFirebaseUser.uid,
+          messageText: msgText.slice(0, 1000),
+          receivedAtMillis: now,
+          unlockAtMillis: now + FOUR_DAYS_MS,
+          senderPseudo: pseudo.slice(0, 80),
+          senderCoordinates: coords.slice(0, 200),
+          senderDeviceInfo: `${deviceName} (${osVersion})`.slice(0, 150),
+          tag: safeTag,
+          read: false,
+          favorite: false,
+          revealedManually: false,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        closeModal("modal-send");
+        const notice = document.getElementById("action-notice-banner");
+        document.getElementById("action-notice-text").textContent =
+          "Message anonyme enregistré sur Firebase Firestore ! Compte à rebours de 4 jours démarré.";
+        notice.style.display = "flex";
+      } catch (e) {
+        showToast("Échec de l'envoi sur Firestore : " + (e.message || e));
+      }
+    });
+
+    document.getElementById("dismiss-notice-btn").addEventListener("click", () => {
+      document.getElementById("action-notice-banner").style.display = "none";
+    });
+
+    document.querySelectorAll("#inbox-filter-chips .chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        currentFilter = chip.dataset.filter;
+        document.querySelectorAll("#inbox-filter-chips .chip").forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+        renderMessages();
+      });
+    });
+
+    document.getElementById("fast-forward-unlock-btn").addEventListener("click", unlockMessageImmediately);
+    document.getElementById("detail-delete-btn").addEventListener("click", deleteSelectedMessage);
+    document.getElementById("detail-share-btn").addEventListener("click", () => {
+      const msg = messages.find(m => m.id === selectedMessageId);
+      if (!msg) return;
+      const text = `Message anonyme reçu : "${msg.messageText}"\nEnvoyé via ${getPublicShareUrl(userProfile?.uniqueLinkSlug || "")}`;
+      if (navigator.share) {
+        navigator.share({ title: "Message SecretLink", text }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(text).then(() => showToast("Message copié pour le partage !"));
+      }
+    });
+
+    document.getElementById("revoke-other-sessions-btn").addEventListener("click", revokeOtherSessions);
+
+    // Settings & Edit Profile Modal
+    document.getElementById("toggle-link-active").addEventListener("change", async (e) => {
+      if (!userProfile) return;
+      try {
+        await updateProfileInFirestore(userProfile.username, userProfile.bio || "", userProfile.profilePicUri || "preset_1", e.target.checked);
+        showToast(e.target.checked ? "Lien anonyme activé !" : "Lien anonyme mis en pause.");
+      } catch (err) {
+        e.target.checked = !e.target.checked;
+        showToast("Erreur lors de la mise à jour Firestore.");
+      }
+    });
+
+    const notifCheckbox = document.getElementById("toggle-notifications");
+    notifCheckbox.checked = localStorage.getItem("secretlink_web_notif") !== "false";
+    notifCheckbox.addEventListener("change", async (e) => {
+      localStorage.setItem("secretlink_web_notif", String(e.target.checked));
+      if (e.target.checked && "Notification" in window && Notification.permission === "default") {
+        await Notification.requestPermission().catch(() => {});
+      }
+    });
+
+    document.querySelectorAll("[data-security-info]").forEach(btn => {
+      btn.addEventListener("click", () => openModal("modal-security-info"));
+    });
+
+    function buildAvatarPresetPicker() {
+      const picker = document.getElementById("avatar-preset-picker");
+      picker.innerHTML = "";
+      Object.entries(AVATAR_PRESETS).forEach(([key, colors]) => {
+        const dot = document.createElement("button");
+        dot.type = "button";
+        dot.className = `preset-dot ${editPhotoUri === key ? "selected" : ""}`;
+        dot.style.background = `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`;
+        dot.textContent = (document.getElementById("edit-username").value || userProfile?.username || "U").charAt(0).toUpperCase();
+        dot.addEventListener("click", () => {
+          editPhotoUri = key;
+          document.getElementById("edit-photo-url").value = "";
+          buildAvatarPresetPicker();
+          renderAvatarInto(document.getElementById("edit-avatar-preview"), editPhotoUri, document.getElementById("edit-username").value);
+        });
+        picker.appendChild(dot);
+      });
+    }
+
+    document.getElementById("open-edit-profile-btn").addEventListener("click", () => {
+      if (!userProfile) return;
+      document.getElementById("edit-username").value = userProfile.username || "";
+      document.getElementById("edit-bio").value = userProfile.bio || "";
+      editPhotoUri = userProfile.profilePicUri || "preset_1";
+      document.getElementById("edit-photo-url").value = editPhotoUri.startsWith("http") ? editPhotoUri : "";
+      buildAvatarPresetPicker();
+      renderAvatarInto(document.getElementById("edit-avatar-preview"), editPhotoUri, userProfile.username);
+      openModal("modal-edit-profile");
+    });
+
+    document.getElementById("edit-photo-url").addEventListener("input", (e) => {
+      const val = e.target.value.trim();
+      editPhotoUri = val || "preset_1";
+      renderAvatarInto(document.getElementById("edit-avatar-preview"), editPhotoUri, document.getElementById("edit-username").value);
+    });
+
+    document.getElementById("save-profile-btn").addEventListener("click", async () => {
+      if (!userProfile) return;
+      const newUsername = document.getElementById("edit-username").value;
+      const newBio = document.getElementById("edit-bio").value;
+      try {
+        await updateProfileInFirestore(newUsername, newBio, editPhotoUri, userProfile.linkActive !== false);
+        closeModal("modal-edit-profile");
+        showToast("Profil synchronisé sur Cloud Firestore !");
+      } catch (err) {
+        showToast("Erreur : " + (err.message || err));
+      }
+    });
+
+    // Countdown 1s ticker
+    setInterval(() => {
+      messages.forEach(msg => {
+        const timerEl = document.getElementById(`timer-${msg.id}`);
+        if (timerEl) {
+          const unlocked = isMessageUnlocked(msg);
+          if (unlocked) {
+            timerEl.textContent = "Voir coordonnées";
+            timerEl.parentElement.classList.add("unlocked");
+            timerEl.previousElementSibling.textContent = "🔓 Coordonnées révélées";
+          } else {
+            timerEl.textContent = formatCountdown(getRemainingMillis(msg));
+          }
+        }
+      });
+      if (selectedMessageId) {
+        const active = messages.find(m => m.id === selectedMessageId);
+        if (active) updateMessageDetailModal(active);
+      }
+    }, 1000);
+
+    if (window.location.protocol === "file:") {
+      showAuthAlert("Mode fichier local détecté (file://) : Firebase Google Sign-In requiert une URL HTTPS (ex: votre site GitHub Pages).");
+    }
+    testFirebaseConnection(true);
+
+    // Handle Redirect Auth Result + Auth State Listener
+    getRedirectResult(auth).catch(err => {
+      if (err && err.code) {
+        showAuthAlert(formatFirebaseAuthError(err));
+      }
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        currentFirebaseUser = null;
+        detachFirestoreListeners();
+        showAuthScreen();
+        setCloudStatus(true, "Firebase Prêt");
+        return;
+      }
+
+      currentFirebaseUser = user;
+      setCloudStatus(true, "Synchronisation...");
+      try {
+        await ensureUserProfileAndSession(user);
+        showLoggedInApp();
+        attachFirestoreListeners(user.uid);
+      } catch (err) {
+        console.error("Bootstrap Firestore error:", err);
+        setCloudStatus(false, "Erreur Sync");
+        showAuthScreen();
+        showAuthAlert("Connexion Google réussie, mais échec Cloud Firestore : " + (err?.message || err));
+      }
+    });
   </script>
 </body>
 </html>

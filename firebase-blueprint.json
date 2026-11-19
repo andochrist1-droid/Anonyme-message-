@@ -54,6 +54,55 @@
         "updatedAt"
       ]
     },
+    "PublicLink": {
+      "title": "PublicLink",
+      "description": "Non-PII public profile card keyed by uniqueLinkSlug for anonymous message senders.",
+      "type": "object",
+      "properties": {
+        "slug": {
+          "type": "string",
+          "description": "Unique URL slug matching the document ID."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the link owner."
+        },
+        "username": {
+          "type": "string",
+          "description": "Public display username."
+        },
+        "profilePicUri": {
+          "type": "string",
+          "description": "Preset avatar key or public photo URL."
+        },
+        "bio": {
+          "type": "string",
+          "description": "Public welcome message."
+        },
+        "linkActive": {
+          "type": "boolean",
+          "description": "Whether the link accepts new anonymous messages."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of link creation (clients must submit FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last link update (clients must submit FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "slug",
+        "ownerId",
+        "username",
+        "linkActive",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
     "SessionLog": {
       "title": "SessionLog",
       "description": "Recorded authentication session audit entry for the user.",
@@ -73,7 +122,7 @@
         },
         "osVersion": {
           "type": "string",
-          "description": "Android OS version string."
+          "description": "Android OS or Browser version string."
         },
         "ipAddress": {
           "type": "string",
@@ -197,6 +246,12 @@
         "$ref": "#/entities/UserProfile"
       },
       "description": "Owner-only user profile documents keyed by Firebase Auth UID."
+    },
+    "/publicLinks/{slug}": {
+      "schema": {
+        "$ref": "#/entities/PublicLink"
+      },
+      "description": "Non-PII public link metadata allowing visitors to resolve recipient profile cards without exposing PII."
     },
     "/users/{userId}/sessions/{sessionId}": {
       "schema": {

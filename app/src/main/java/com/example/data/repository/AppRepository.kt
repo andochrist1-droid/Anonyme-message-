@@ -161,6 +161,20 @@ class AppRepository(
                 userDocRef.set(profilePayload).await()
                 displayUsername = cleanUsername
 
+                val publicLinkRef = db.collection("publicLinks").document(slug)
+                currentPath = publicLinkRef.path
+                val publicLinkPayload = mapOf(
+                    "slug" to slug,
+                    "ownerId" to uid,
+                    "username" to cleanUsername,
+                    "profilePicUri" to cleanPhoto,
+                    "bio" to "Laissez-moi un message anonyme en toute liberté !",
+                    "linkActive" to true,
+                    "createdAt" to FieldValue.serverTimestamp(),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+                publicLinkRef.set(publicLinkPayload).await()
+
                 // Create welcome anonymous message with 4-day timer in Firestore
                 val now = System.currentTimeMillis()
                 val welcomeMsgRef = userDocRef.collection("messages").document()
@@ -183,6 +197,25 @@ class AppRepository(
                 welcomeMsgRef.set(welcomePayload).await()
             } else {
                 displayUsername = snapshot.getString("username")?.take(40)?.ifBlank { "Utilisateur" } ?: "Utilisateur"
+                val existingSlug = snapshot.getString("uniqueLinkSlug")
+                if (!existingSlug.isNullOrBlank()) {
+                    val publicLinkRef = db.collection("publicLinks").document(existingSlug)
+                    val publicSnap = publicLinkRef.get().await()
+                    if (!publicSnap.exists()) {
+                        currentPath = publicLinkRef.path
+                        val backfilledPublic = mapOf(
+                            "slug" to existingSlug,
+                            "ownerId" to uid,
+                            "username" to displayUsername,
+                            "profilePicUri" to (snapshot.getString("profilePicUri") ?: "preset_1").take(500),
+                            "bio" to (snapshot.getString("bio") ?: "").take(300),
+                            "linkActive" to (snapshot.getBoolean("linkActive") ?: true),
+                            "createdAt" to FieldValue.serverTimestamp(),
+                            "updatedAt" to FieldValue.serverTimestamp()
+                        )
+                        publicLinkRef.set(backfilledPublic).await()
+                    }
+                }
             }
 
             // Record active session in Firestore
@@ -218,7 +251,7 @@ class AppRepository(
         profilePicUri: String,
         linkActive: Boolean
     ): Result<Unit> {
-        val docPath = "users/$userId"
+        var docPath = "users/$userId"
         return try {
             requireUserId(userId)
             val cleanUsername = username.trim()
@@ -226,7 +259,11 @@ class AppRepository(
             val cleanBio = bio.trim().take(300)
             val cleanPhoto = profilePicUri.trim().ifBlank { "preset_1" }.take(500)
 
-            db.collection("users").document(userId).update(
+            val userRef = db.collection("users").document(userId)
+            val userSnap = userRef.get().await()
+            val slug = userSnap.getString("uniqueLinkSlug")
+
+            userRef.update(
                 mapOf(
                     "username" to cleanUsername,
                     "bio" to cleanBio,
@@ -235,6 +272,36 @@ class AppRepository(
                     "updatedAt" to FieldValue.serverTimestamp()
                 )
             ).await()
+
+            if (!slug.isNullOrBlank()) {
+                val publicLinkRef = db.collection("publicLinks").document(slug)
+                docPath = publicLinkRef.path
+                val publicSnap = publicLinkRef.get().await()
+                if (publicSnap.exists()) {
+                    publicLinkRef.update(
+                        mapOf(
+                            "username" to cleanUsername,
+                            "bio" to cleanBio,
+                            "profilePicUri" to cleanPhoto,
+                            "linkActive" to linkActive,
+                            "updatedAt" to FieldValue.serverTimestamp()
+                        )
+                    ).await()
+                } else {
+                    publicLinkRef.set(
+                        mapOf(
+                            "slug" to slug,
+                            "ownerId" to userId,
+                            "username" to cleanUsername,
+                            "bio" to cleanBio,
+                            "profilePicUri" to cleanPhoto,
+                            "linkActive" to linkActive,
+                            "createdAt" to FieldValue.serverTimestamp(),
+                            "updatedAt" to FieldValue.serverTimestamp()
+                        )
+                    ).await()
+                }
+            }
             Result.success(Unit)
         } catch (e: CancellationException) {
             throw e
