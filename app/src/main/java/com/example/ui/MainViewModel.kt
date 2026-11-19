@@ -1,89 +1,127 @@
 package com.example.ui
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import android.util.Log
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.model.AnonymousMessageEntity
-import com.example.data.model.SessionLogEntity
-import com.example.data.model.UserEntity
+import com.example.data.model.AnonymousMessage
+import com.example.data.model.SessionLog
+import com.example.data.model.UserProfile
 import com.example.data.repository.AppRepository
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
+import com.google.firebase.firestore.FirebaseFirestoreException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-sealed interface AuthMode {
-    data object Login : AuthMode
-    data object Register : AuthMode
+sealed interface UiState<out T> {
+    data object Loading : UiState<Nothing>
+    data class Success<T>(val data: T) : UiState<T>
+    data class Error(val message: String) : UiState<Nothing>
 }
 
-data class AuthUiState(
-    val mode: AuthMode = AuthMode.Login,
-    val identifierInput: String = "",
-    val usernameInput: String = "",
-    val emailInput: String = "",
-    val passwordInput: String = "",
-    val profilePicUri: String = "preset_1",
-    val bioInput: String = "",
-    val isLoading: Boolean = false,
-    val errorMessage: String? = null,
-    val successMessage: String? = null
-)
+class MainViewModel(
+    private val repository: AppRepository,
+    private val currentUserId: String
+) : ViewModel() {
 
-class MainViewModel(application: Application) : AndroidViewModel(application) {
-    val repository = AppRepository(application.applicationContext)
-
-    val currentUser: StateFlow<UserEntity?> = repository.currentUser
-    val currentSession: StateFlow<SessionLogEntity?> = repository.currentSession
-
-    val savedAccounts: StateFlow<List<UserEntity>> = repository.allUsers
+    val userProfileState: StateFlow<UiState<UserProfile?>> = repository.observeUserProfile(currentUserId)
+        .map<UserProfile?, UiState<UserProfile?>> { UiState.Success(it) }
+        .catch { error ->
+            val firestoreError = generateSequence(error) { it.cause }
+                .filterIsInstance<FirebaseFirestoreException>()
+                .firstOrNull()
+            if (firestoreError == null && error is CancellationException) throw error
+            val rootError = firestoreError ?: error
+            Log.w(TAG, "Error observing user profile", rootError)
+            emit(UiState.Error(rootError.localizedMessage ?: "Erreur lors du chargement du profil"))
+        }
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            initialValue = UiState.Loading
         )
-
-    val sessions: StateFlow<List<SessionLogEntity>> = repository.getSessionsForCurrentUser()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
-
-    private val _currentTimeMillis = MutableStateFlow(System.currentTimeMillis())
-    val currentTimeMillis: StateFlow<Long> = _currentTimeMillis.asStateFlow()
 
     private val _messageFilter = MutableStateFlow("ALL") // "ALL", "UNREAD", "FAVORITES"
     val messageFilter: StateFlow<String> = _messageFilter.asStateFlow()
 
-    val messages: StateFlow<List<AnonymousMessageEntity>> = combine(
-        repository.getMessagesForCurrentUser(),
+    val messagesState: StateFlow<UiState<List<AnonymousMessage>>> = combine(
+        repository.observeMessages(currentUserId),
         _messageFilter
     ) { msgList, filter ->
-        when (filter) {
-            "UNREAD" -> msgList.filter { !it.isRead }
-            "FAVORITES" -> msgList.filter { it.isFavorite }
+        val filtered = when (filter) {
+            "UNREAD" -> msgList.filter { !it.read }
+            "FAVORITES" -> msgList.filter { it.favorite }
             else -> msgList
         }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+        UiState.Success(filtered) as UiState<List<AnonymousMessage>>
+    }
+        .catch { error ->
+            val firestoreError = generateSequence(error) { it.cause }
+                .filterIsInstance<FirebaseFirestoreException>()
+                .firstOrNull()
+            if (firestoreError == null && error is CancellationException) throw error
+            val rootError = firestoreError ?: error
+            Log.w(TAG, "Error observing messages", rootError)
+            emit(UiState.Error(rootError.localizedMessage ?: "Erreur lors du chargement des messages"))
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            initialValue = UiState.Loading
+        )
 
-    private val _authUiState = MutableStateFlow(AuthUiState())
-    val authUiState: StateFlow<AuthUiState> = _authUiState.asStateFlow()
+    val sessionsState: StateFlow<UiState<List<SessionLog>>> = repository.observeSessions(currentUserId)
+        .map<List<SessionLog>, UiState<List<SessionLog>>> { UiState.Success(it) }
+        .catch { error ->
+            val firestoreError = generateSequence(error) { it.cause }
+                .filterIsInstance<FirebaseFirestoreException>()
+                .firstOrNull()
+            if (firestoreError == null && error is CancellationException) throw error
+            val rootError = firestoreError ?: error
+            Log.w(TAG, "Error observing sessions", rootError)
+            emit(UiState.Error(rootError.localizedMessage ?: "Erreur lors du chargement des sessions"))
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            initialValue = UiState.Loading
+        )
 
-    // Test sender simulation state
-    private val _simulatedSendSuccess = MutableStateFlow<String?>(null)
-    val simulatedSendSuccess: StateFlow<String?> = _simulatedSendSuccess.asStateFlow()
+    private val _currentSessionId = MutableStateFlow<String?>(null)
+    val currentSessionId: StateFlow<String?> = _currentSessionId.asStateFlow()
+
+    private val _currentTimeMillis = MutableStateFlow(System.currentTimeMillis())
+    val currentTimeMillis: StateFlow<Long> = _currentTimeMillis.asStateFlow()
+
+    private val _actionNotice = MutableStateFlow<String?>(null)
+    val actionNotice: StateFlow<String?> = _actionNotice.asStateFlow()
+
+    private val _actionError = MutableStateFlow<String?>(null)
+    val actionError: StateFlow<String?> = _actionError.asStateFlow()
 
     init {
-        // Countdown ticker that updates every second
+        viewModelScope.launch {
+            val firebaseUser = Firebase.auth.currentUser
+            if (firebaseUser != null && firebaseUser.uid == currentUserId) {
+                val res = repository.ensureUserProfileAndSession(firebaseUser)
+                res.onSuccess { sessionId ->
+                    _currentSessionId.value = sessionId
+                }.onFailure { err ->
+                    _actionError.value = err.localizedMessage ?: "Erreur de synchronisation Cloud"
+                }
+            }
+        }
+
+        // Countdown ticker updating every second
         viewModelScope.launch {
             while (true) {
                 delay(1000)
@@ -92,151 +130,64 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun setAuthMode(mode: AuthMode) {
-        _authUiState.value = _authUiState.value.copy(
-            mode = mode,
-            errorMessage = null,
-            successMessage = null
-        )
+    fun setMessageFilter(filter: String) {
+        _messageFilter.value = filter
     }
 
-    fun updateAuthInput(
-        identifier: String? = null,
-        username: String? = null,
-        email: String? = null,
-        password: String? = null,
-        profilePic: String? = null,
-        bio: String? = null
-    ) {
-        _authUiState.value = _authUiState.value.copy(
-            identifierInput = identifier ?: _authUiState.value.identifierInput,
-            usernameInput = username ?: _authUiState.value.usernameInput,
-            emailInput = email ?: _authUiState.value.emailInput,
-            passwordInput = password ?: _authUiState.value.passwordInput,
-            profilePicUri = profilePic ?: _authUiState.value.profilePicUri,
-            bioInput = bio ?: _authUiState.value.bioInput,
-            errorMessage = null
-        )
-    }
-
-    fun submitLogin() {
-        val state = _authUiState.value
-        if (state.identifierInput.isBlank() || state.passwordInput.isBlank()) {
-            _authUiState.value = state.copy(errorMessage = "Veuillez remplir tous les champs")
-            return
-        }
-
+    fun markMessageAsRead(messageId: String) {
         viewModelScope.launch {
-            _authUiState.value = state.copy(isLoading = true, errorMessage = null)
-            val result = repository.login(state.identifierInput, state.passwordInput)
-            if (result.isSuccess) {
-                _authUiState.value = AuthUiState() // Reset
-            } else {
-                _authUiState.value = state.copy(
-                    isLoading = false,
-                    errorMessage = result.exceptionOrNull()?.message ?: "Échec de connexion"
-                )
-            }
+            repository.markMessageAsRead(currentUserId, messageId)
+                .onFailure { _actionError.value = it.localizedMessage }
         }
     }
 
-    fun submitRegister() {
-        val state = _authUiState.value
-        if (state.usernameInput.isBlank() || state.emailInput.isBlank() || state.passwordInput.isBlank()) {
-            _authUiState.value = state.copy(errorMessage = "Veuillez remplir les informations requises")
-            return
-        }
-
+    fun toggleFavorite(messageId: String, currentFavorite: Boolean) {
         viewModelScope.launch {
-            _authUiState.value = state.copy(isLoading = true, errorMessage = null)
-            val result = repository.register(
-                username = state.usernameInput,
-                email = state.emailInput,
-                password = state.passwordInput,
-                profilePicUri = state.profilePicUri,
-                bio = state.bioInput
-            )
-            if (result.isSuccess) {
-                _authUiState.value = AuthUiState() // Reset
-            } else {
-                _authUiState.value = state.copy(
-                    isLoading = false,
-                    errorMessage = result.exceptionOrNull()?.message ?: "Erreur d'inscription"
-                )
-            }
+            repository.toggleFavorite(currentUserId, messageId, !currentFavorite)
+                .onFailure { _actionError.value = it.localizedMessage }
         }
     }
 
-    fun fastLogin(user: UserEntity) {
+    fun unlockCoordinatesImmediately(messageId: String) {
         viewModelScope.launch {
-            _authUiState.value = _authUiState.value.copy(isLoading = true, errorMessage = null)
-            val result = repository.fastLogin(user)
-            if (result.isSuccess) {
-                _authUiState.value = AuthUiState()
-            } else {
-                _authUiState.value = _authUiState.value.copy(
-                    isLoading = false,
-                    errorMessage = result.exceptionOrNull()?.message ?: "Échec de connexion instantanée"
-                )
-            }
+            repository.unlockCoordinatesImmediately(currentUserId, messageId)
+                .onFailure { _actionError.value = it.localizedMessage }
         }
     }
 
-    fun removeSavedAccount(userId: Long) {
+    fun deleteMessage(messageId: String) {
         viewModelScope.launch {
-            repository.removeSavedAccount(userId)
+            repository.deleteMessage(currentUserId, messageId)
+                .onFailure { _actionError.value = it.localizedMessage }
         }
     }
 
-    fun logout() {
+    fun updateProfile(username: String, bio: String, profilePicUri: String, linkActive: Boolean) {
         viewModelScope.launch {
-            repository.logout()
+            repository.updateProfile(currentUserId, username, bio, profilePicUri, linkActive)
+                .onSuccess { _actionNotice.value = "Profil synchronisé sur Cloud Firestore !" }
+                .onFailure { _actionError.value = it.localizedMessage ?: "Échec de mise à jour du profil" }
         }
     }
 
-    fun revokeSession(sessionId: Long) {
+    fun revokeSession(sessionId: String) {
         viewModelScope.launch {
-            repository.revokeSession(sessionId)
+            repository.revokeSession(currentUserId, sessionId)
+                .onFailure { _actionError.value = it.localizedMessage }
         }
     }
 
     fun revokeOtherSessions() {
         viewModelScope.launch {
-            repository.revokeOtherSessions()
+            repository.revokeOtherSessions(currentUserId, _currentSessionId.value)
+                .onFailure { _actionError.value = it.localizedMessage }
         }
     }
 
-    fun setMessageFilter(filter: String) {
-        _messageFilter.value = filter
-    }
-
-    fun markMessageAsRead(messageId: Long) {
-        viewModelScope.launch {
-            repository.markMessageAsRead(messageId)
-        }
-    }
-
-    fun toggleFavorite(messageId: Long) {
-        viewModelScope.launch {
-            repository.toggleFavorite(messageId)
-        }
-    }
-
-    fun unlockCoordinatesImmediately(messageId: Long) {
-        viewModelScope.launch {
-            repository.unlockCoordinatesImmediately(messageId)
-        }
-    }
-
-    fun deleteMessage(messageId: Long) {
-        viewModelScope.launch {
-            repository.deleteMessage(messageId)
-        }
-    }
-
-    fun updateProfile(username: String, bio: String, profilePicUri: String, isLinkActive: Boolean) {
-        viewModelScope.launch {
-            repository.updateProfile(username, bio, profilePicUri, isLinkActive)
+    suspend fun markCurrentSessionInactiveBeforeSignOut() {
+        val sessId = _currentSessionId.value
+        if (!sessId.isNullOrBlank()) {
+            repository.revokeSession(currentUserId, sessId)
         }
     }
 
@@ -246,22 +197,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         senderCoordinates: String,
         tag: String
     ) {
-        val user = currentUser.value ?: return
         viewModelScope.launch {
-            val res = repository.sendAnonymousMessage(
-                targetUserId = user.id,
+            repository.sendAnonymousMessage(
+                userId = currentUserId,
                 messageText = messageText,
                 senderPseudo = senderPseudo,
                 senderCoordinates = senderCoordinates,
                 tag = tag
-            )
-            if (res.isSuccess) {
-                _simulatedSendSuccess.value = "Message anonyme chiffré envoyé avec succès ! Le compte à rebours de 4 jours a démarré."
+            ).onSuccess {
+                _actionNotice.value = "Message anonyme enregistré sur Firebase Firestore ! Compte à rebours de 4 jours démarré."
+            }.onFailure {
+                _actionError.value = it.localizedMessage ?: "Échec de l'envoi sur Firestore"
             }
         }
     }
 
-    fun clearSimulatedSendSuccess() {
-        _simulatedSendSuccess.value = null
+    fun clearActionNotice() {
+        _actionNotice.value = null
+    }
+
+    fun clearActionError() {
+        _actionError.value = null
+    }
+
+    private companion object {
+        const val TAG = "MainViewModel"
+        const val STOP_TIMEOUT_MILLIS = 5000L
     }
 }

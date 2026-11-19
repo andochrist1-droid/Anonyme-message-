@@ -1,290 +1,420 @@
 package com.example.data.repository
 
 import android.content.Context
-import com.example.data.AppDatabase
-import com.example.data.model.AnonymousMessageEntity
-import com.example.data.model.SessionLogEntity
-import com.example.data.model.UserEntity
+import com.example.R
+import com.example.data.OperationType
+import com.example.data.handleFirestoreError
+import com.example.data.model.AnonymousMessage
+import com.example.data.model.SessionLog
+import com.example.data.model.UserProfile
 import com.example.util.SecurityUtils
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.auth
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.snapshots
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.tasks.await
 
-class AppRepository(context: Context) {
-    private val db = AppDatabase.getDatabase(context)
-    private val userDao = db.userDao()
-    private val sessionDao = db.sessionDao()
-    private val messageDao = db.messageDao()
+class AppRepository(
+    private val db: FirebaseFirestore,
+    private val auth: FirebaseAuth = Firebase.auth
+) {
+    constructor(context: Context) : this(
+        FirebaseFirestore.getInstance(
+            context.applicationContext.getString(R.string.firestore_database_id)
+        )
+    )
 
-    private val _currentUser = MutableStateFlow<UserEntity?>(null)
-    val currentUser: StateFlow<UserEntity?> = _currentUser.asStateFlow()
+    private fun requireUserId(expectedUserId: String? = null): String {
+        val uid = auth.currentUser?.uid
+            ?: throw IllegalStateException("L'utilisateur doit être connecté avec Google avant d'accéder à Firestore.")
+        require(uid.isNotBlank()) { "Identifiant utilisateur invalide." }
+        if (expectedUserId != null) {
+            check(uid == expectedUserId) { "L'utilisateur connecté a changé ; écriture refusée." }
+        }
+        return uid
+    }
 
-    private val _currentSession = MutableStateFlow<SessionLogEntity?>(null)
-    val currentSession: StateFlow<SessionLogEntity?> = _currentSession.asStateFlow()
+    fun observeUserProfile(userId: String): Flow<UserProfile?> = flow {
+        requireUserId(userId)
+        val docRef = db.collection("users").document(userId)
+        emitAll(
+            docRef.snapshots()
+                .map { snapshot ->
+                    if (snapshot.exists()) {
+                        snapshot.toObject(UserProfile::class.java, DocumentSnapshot.ServerTimestampBehavior.ESTIMATE)
+                    } else {
+                        null
+                    }
+                }
+                .catch { error ->
+                    val firestoreError = generateSequence(error) { it.cause }
+                        .filterIsInstance<FirebaseFirestoreException>()
+                        .firstOrNull()
+                    if (firestoreError == null && error is CancellationException) throw error
+                    val exceptionToLog = firestoreError ?: (error as? Exception)
+                    if (exceptionToLog != null && auth.currentUser?.uid == userId) {
+                        handleFirestoreError(exceptionToLog, OperationType.GET, docRef.path)
+                    }
+                    throw error
+                }
+        )
+    }
 
-    val allUsers: Flow<List<UserEntity>> = userDao.getAllUsersFlow()
+    fun observeMessages(userId: String): Flow<List<AnonymousMessage>> = flow {
+        requireUserId(userId)
+        val path = "users/$userId/messages"
+        emitAll(
+            db.collection("users").document(userId).collection("messages")
+                .orderBy("receivedAtMillis", Query.Direction.DESCENDING)
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.toObjects(AnonymousMessage::class.java, DocumentSnapshot.ServerTimestampBehavior.ESTIMATE)
+                }
+                .catch { error ->
+                    val firestoreError = generateSequence(error) { it.cause }
+                        .filterIsInstance<FirebaseFirestoreException>()
+                        .firstOrNull()
+                    if (firestoreError == null && error is CancellationException) throw error
+                    val exceptionToLog = firestoreError ?: (error as? Exception)
+                    if (exceptionToLog != null && auth.currentUser?.uid == userId) {
+                        handleFirestoreError(exceptionToLog, OperationType.LIST, path)
+                    }
+                    throw error
+                }
+        )
+    }
 
-    private val repoScope = CoroutineScope(Dispatchers.IO)
+    fun observeSessions(userId: String): Flow<List<SessionLog>> = flow {
+        requireUserId(userId)
+        val path = "users/$userId/sessions"
+        emitAll(
+            db.collection("users").document(userId).collection("sessions")
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.toObjects(SessionLog::class.java, DocumentSnapshot.ServerTimestampBehavior.ESTIMATE)
+                }
+                .catch { error ->
+                    val firestoreError = generateSequence(error) { it.cause }
+                        .filterIsInstance<FirebaseFirestoreException>()
+                        .firstOrNull()
+                    if (firestoreError == null && error is CancellationException) throw error
+                    val exceptionToLog = firestoreError ?: (error as? Exception)
+                    if (exceptionToLog != null && auth.currentUser?.uid == userId) {
+                        handleFirestoreError(exceptionToLog, OperationType.LIST, path)
+                    }
+                    throw error
+                }
+        )
+    }
 
-    init {
-        repoScope.launch {
-            // Purge any legacy demo account so users land directly on clean state
-            userDao.deleteDemoUser()
+    suspend fun ensureUserProfileAndSession(firebaseUser: FirebaseUser): Result<String> {
+        val uid = firebaseUser.uid
+        var currentPath = "users/$uid"
+        return try {
+            requireUserId(uid)
+            val userDocRef = db.collection("users").document(uid)
+            val snapshot = userDocRef.get().await()
 
-            // Restore last registered/logged in user if available for instant connection
-            val latest = userDao.getLatestUser()
-            if (latest != null) {
-                _currentUser.value = latest
-                // Create or refresh session
-                val token = SecurityUtils.generateSessionToken()
-                val session = SessionLogEntity(
-                    userId = latest.id,
-                    username = latest.username,
-                    deviceName = SecurityUtils.getDeviceModel(),
-                    osVersion = SecurityUtils.getOsVersion(),
-                    ipAddress = SecurityUtils.generateSimulatedIp(),
-                    locationEstimate = "Connexion instantanée sécurisée",
-                    sessionToken = token
+            val displayUsername: String
+            if (!snapshot.exists()) {
+                val rawName = firebaseUser.displayName?.trim()
+                    ?: firebaseUser.email?.substringBefore("@")?.trim()
+                    ?: "Utilisateur"
+                val cleanUsername = rawName.ifBlank { "Utilisateur" }.take(40).let {
+                    if (it.length < 2) "${it}_user" else it
+                }
+                val cleanEmail = (firebaseUser.email ?: "").take(150)
+                val cleanPhoto = (firebaseUser.photoUrl?.toString() ?: "preset_1").take(500)
+                val slugBase = cleanUsername.lowercase()
+                    .replace(Regex("[^a-z0-9]+"), "_")
+                    .trim('_')
+                    .ifBlank { "user" }
+                    .take(40)
+                val slug = "${slugBase}_${uid.take(6).lowercase()}"
+
+                val profilePayload = mapOf(
+                    "userId" to uid,
+                    "username" to cleanUsername,
+                    "email" to cleanEmail,
+                    "profilePicUri" to cleanPhoto,
+                    "bio" to "Laissez-moi un message anonyme en toute liberté !",
+                    "uniqueLinkSlug" to slug,
+                    "linkActive" to true,
+                    "createdAt" to FieldValue.serverTimestamp(),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                ).filterValues { it != null }
+
+                currentPath = userDocRef.path
+                userDocRef.set(profilePayload).await()
+                displayUsername = cleanUsername
+
+                // Create welcome anonymous message with 4-day timer in Firestore
+                val now = System.currentTimeMillis()
+                val welcomeMsgRef = userDocRef.collection("messages").document()
+                currentPath = welcomeMsgRef.path
+                val welcomePayload = mapOf(
+                    "userId" to uid,
+                    "messageText" to "Bienvenue sur votre plateforme de messagerie anonyme ! Vos messages et sessions sont désormais synchronisés en temps réel sur Cloud Firestore.",
+                    "receivedAtMillis" to now,
+                    "unlockAtMillis" to now + AnonymousMessage.FOUR_DAYS_MS,
+                    "senderPseudo" to "Équipe Sécurité",
+                    "senderCoordinates" to "Support vérifié Cloud Firestore",
+                    "senderDeviceInfo" to "Serveur Central Chiffré",
+                    "tag" to "Bienvenue",
+                    "read" to false,
+                    "favorite" to true,
+                    "revealedManually" to false,
+                    "createdAt" to FieldValue.serverTimestamp(),
+                    "updatedAt" to FieldValue.serverTimestamp()
                 )
-                val sid = sessionDao.insertSession(session)
-                _currentSession.value = session.copy(id = sid)
+                welcomeMsgRef.set(welcomePayload).await()
             } else {
-                _currentUser.value = null
-                _currentSession.value = null
+                displayUsername = snapshot.getString("username")?.take(40)?.ifBlank { "Utilisateur" } ?: "Utilisateur"
             }
-        }
-    }
 
-    suspend fun fastLogin(user: UserEntity): Result<UserEntity> = withContext(Dispatchers.IO) {
-        val existing = userDao.getUserById(user.id)
-            ?: return@withContext Result.failure(Exception("Compte introuvable sur cet appareil"))
-
-        val sessionToken = SecurityUtils.generateSessionToken()
-        val session = SessionLogEntity(
-            userId = existing.id,
-            username = existing.username,
-            deviceName = SecurityUtils.getDeviceModel(),
-            osVersion = SecurityUtils.getOsVersion(),
-            ipAddress = SecurityUtils.generateSimulatedIp(),
-            locationEstimate = "Connexion instantanée (1-Clic)",
-            sessionToken = sessionToken
-        )
-        val sid = sessionDao.insertSession(session)
-
-        _currentUser.value = existing
-        _currentSession.value = session.copy(id = sid)
-        Result.success(existing)
-    }
-
-    suspend fun login(identifier: String, password: String): Result<UserEntity> = withContext(Dispatchers.IO) {
-        val user = userDao.findByIdentifier(identifier.trim())
-            ?: return@withContext Result.failure(Exception("Nom d'utilisateur ou e-mail introuvable"))
-
-        val hashed = SecurityUtils.hashPassword(password)
-        if (user.passwordHash != hashed) {
-            return@withContext Result.failure(Exception("Mot de passe incorrect"))
-        }
-
-        val sessionToken = SecurityUtils.generateSessionToken()
-        val session = SessionLogEntity(
-            userId = user.id,
-            username = user.username,
-            deviceName = SecurityUtils.getDeviceModel(),
-            osVersion = SecurityUtils.getOsVersion(),
-            ipAddress = SecurityUtils.generateSimulatedIp(),
-            locationEstimate = "Connexion chiffrée SSL",
-            sessionToken = sessionToken
-        )
-        val sid = sessionDao.insertSession(session)
-
-        _currentUser.value = user
-        _currentSession.value = session.copy(id = sid)
-        Result.success(user)
-    }
-
-    suspend fun register(
-        username: String,
-        email: String,
-        password: String,
-        profilePicUri: String,
-        bio: String
-    ): Result<UserEntity> = withContext(Dispatchers.IO) {
-        val cleanUser = username.trim()
-        val cleanEmail = email.trim()
-
-        if (cleanUser.length < 3) {
-            return@withContext Result.failure(Exception("Le nom d'utilisateur doit comporter au moins 3 caractères"))
-        }
-        if (!cleanEmail.contains("@") || !cleanEmail.contains(".")) {
-            return@withContext Result.failure(Exception("Format d'e-mail invalide"))
-        }
-        if (password.length < 4) {
-            return@withContext Result.failure(Exception("Le mot de passe doit comporter au moins 4 caractères"))
-        }
-
-        val existing = userDao.findByUsernameOrEmail(cleanUser, cleanEmail)
-            ?: userDao.findByIdentifier(cleanUser)
-            ?: userDao.findByIdentifier(cleanEmail)
-        if (existing != null) {
-            return@withContext Result.failure(Exception("Un compte existe déjà avec ce pseudonyme ou cet e-mail. Veuillez vous connecter directement."))
-        }
-
-        val slug = cleanUser.lowercase().replace(" ", "_") + "_" + (100..999).random()
-        val newUser = UserEntity(
-            username = cleanUser,
-            email = cleanEmail,
-            passwordHash = SecurityUtils.hashPassword(password),
-            profilePicUri = profilePicUri.ifBlank { "preset_1" },
-            bio = bio.ifBlank { "Laissez-moi un message anonyme en toute liberté !" },
-            uniqueLinkSlug = slug
-        )
-
-        val uid = userDao.insertUser(newUser)
-        val savedUser = newUser.copy(id = uid)
-
-        // Record initial connection session in secure database
-        val sessionToken = SecurityUtils.generateSessionToken()
-        val session = SessionLogEntity(
-            userId = uid,
-            username = savedUser.username,
-            deviceName = SecurityUtils.getDeviceModel(),
-            osVersion = SecurityUtils.getOsVersion(),
-            ipAddress = SecurityUtils.generateSimulatedIp(),
-            locationEstimate = "Première connexion sécurisée",
-            sessionToken = sessionToken
-        )
-        val sid = sessionDao.insertSession(session)
-
-        _currentUser.value = savedUser
-        _currentSession.value = session.copy(id = sid)
-
-        // Add welcome message with 4-day timer
-        val now = System.currentTimeMillis()
-        messageDao.insertMessage(
-            AnonymousMessageEntity(
-                recipientUserId = uid,
-                messageText = "Bienvenue sur votre plateforme de messagerie anonyme ! Partagez votre lien public pour recevoir des messages chiffrés. Leurs coordonnées resteront secrètes pendant 4 jours.",
-                receivedAt = now,
-                unlockAt = now + AnonymousMessageEntity.FOUR_DAYS_MS,
-                senderPseudo = "Équipe Sécurité",
-                senderCoordinates = "Support: security@anonym-platform.com | Clé PGP vérifiée",
-                senderDeviceInfo = "Serveur Central Chiffré",
-                tag = "Bienvenue",
-                isRead = false,
-                isFavorite = true
+            // Record active session in Firestore
+            val sessionRef = userDocRef.collection("sessions").document()
+            currentPath = sessionRef.path
+            val sessionPayload = mapOf(
+                "userId" to uid,
+                "username" to displayUsername,
+                "deviceName" to SecurityUtils.getDeviceModel().take(100),
+                "osVersion" to SecurityUtils.getOsVersion().take(80),
+                "ipAddress" to SecurityUtils.generateSimulatedIp().take(80),
+                "locationEstimate" to "Google Sign-In • Cloud Firestore",
+                "active" to true,
+                "sessionToken" to SecurityUtils.generateSessionToken().take(128),
+                "createdAt" to FieldValue.serverTimestamp(),
+                "updatedAt" to FieldValue.serverTimestamp()
             )
-        )
+            sessionRef.set(sessionPayload).await()
 
-        Result.success(savedUser)
+            Result.success(sessionRef.id)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.WRITE, currentPath)
+            Result.failure(e)
+        }
     }
 
     suspend fun updateProfile(
+        userId: String,
         username: String,
         bio: String,
         profilePicUri: String,
-        isLinkActive: Boolean
-    ): Result<UserEntity> = withContext(Dispatchers.IO) {
-        val current = _currentUser.value ?: return@withContext Result.failure(Exception("Non connecté"))
-        val updated = current.copy(
-            username = username.trim().ifBlank { current.username },
-            bio = bio.trim(),
-            profilePicUri = profilePicUri.ifBlank { current.profilePicUri },
-            isLinkActive = isLinkActive
-        )
-        userDao.updateUser(updated)
-        _currentUser.value = updated
-        Result.success(updated)
-    }
+        linkActive: Boolean
+    ): Result<Unit> {
+        val docPath = "users/$userId"
+        return try {
+            requireUserId(userId)
+            val cleanUsername = username.trim()
+            require(cleanUsername.length in 2..40) { "Le nom d'utilisateur doit contenir entre 2 et 40 caractères." }
+            val cleanBio = bio.trim().take(300)
+            val cleanPhoto = profilePicUri.trim().ifBlank { "preset_1" }.take(500)
 
-    suspend fun logout() = withContext(Dispatchers.IO) {
-        val currentSess = _currentSession.value
-        if (currentSess != null) {
-            sessionDao.revokeSession(currentSess.id)
-        }
-        _currentUser.value = null
-        _currentSession.value = null
-    }
-
-    fun getSessionsForCurrentUser(): Flow<List<SessionLogEntity>> {
-        val user = _currentUser.value ?: return emptyFlow()
-        return sessionDao.getSessionsForUser(user.id)
-    }
-
-    suspend fun revokeSession(sessionId: Long) = withContext(Dispatchers.IO) {
-        sessionDao.revokeSession(sessionId)
-        if (_currentSession.value?.id == sessionId) {
-            _currentUser.value = null
-            _currentSession.value = null
-        }
-    }
-
-    suspend fun revokeOtherSessions() = withContext(Dispatchers.IO) {
-        val user = _currentUser.value ?: return@withContext
-        val sess = _currentSession.value ?: return@withContext
-        sessionDao.revokeOtherSessions(user.id, sess.id)
-    }
-
-    fun getMessagesForCurrentUser(): Flow<List<AnonymousMessageEntity>> {
-        return currentUser.flatMapLatest { user ->
-            if (user == null) emptyFlow() else messageDao.getMessagesForUser(user.id)
+            db.collection("users").document(userId).update(
+                mapOf(
+                    "username" to cleanUsername,
+                    "bio" to cleanBio,
+                    "profilePicUri" to cleanPhoto,
+                    "linkActive" to linkActive,
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+            ).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.UPDATE, docPath)
+            Result.failure(e)
         }
     }
 
     suspend fun sendAnonymousMessage(
-        targetUserId: Long,
+        userId: String,
         messageText: String,
         senderPseudo: String,
         senderCoordinates: String,
         tag: String
-    ): Result<Long> = withContext(Dispatchers.IO) {
-        if (messageText.isBlank()) {
-            return@withContext Result.failure(Exception("Le message ne peut pas être vide"))
+    ): Result<String> {
+        var docPath = "users/$userId/messages"
+        return try {
+            requireUserId(userId)
+            val cleanMsg = messageText.trim()
+            require(cleanMsg.length in 1..1000) { "Le message doit contenir entre 1 et 1000 caractères." }
+            val safeTag = if (tag in AnonymousMessage.ALLOWED_TAGS) tag else "Secret"
+            val cleanPseudo = senderPseudo.trim().ifBlank { "Anonyme mystère" }.take(80)
+            val cleanCoords = senderCoordinates.trim().ifBlank { "Non renseigné par l'expéditeur" }.take(200)
+            val deviceInfo = "${SecurityUtils.getDeviceModel()} (${SecurityUtils.getOsVersion()})".take(150)
+
+            val now = System.currentTimeMillis()
+            val docRef = db.collection("users").document(userId).collection("messages").document()
+            docPath = docRef.path
+
+            val payload = mapOf(
+                "userId" to userId,
+                "messageText" to cleanMsg,
+                "receivedAtMillis" to now,
+                "unlockAtMillis" to now + AnonymousMessage.FOUR_DAYS_MS,
+                "senderPseudo" to cleanPseudo,
+                "senderCoordinates" to cleanCoords,
+                "senderDeviceInfo" to deviceInfo,
+                "tag" to safeTag,
+                "read" to false,
+                "favorite" to false,
+                "revealedManually" to false,
+                "createdAt" to FieldValue.serverTimestamp(),
+                "updatedAt" to FieldValue.serverTimestamp()
+            )
+            docRef.set(payload).await()
+            Result.success(docRef.id)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.CREATE, docPath)
+            Result.failure(e)
         }
-
-        val msg = AnonymousMessageEntity(
-            recipientUserId = targetUserId,
-            messageText = messageText.trim(),
-            receivedAt = System.currentTimeMillis(),
-            unlockAt = System.currentTimeMillis() + AnonymousMessageEntity.FOUR_DAYS_MS,
-            senderPseudo = senderPseudo.trim().ifBlank { "Anonyme mystère" },
-            senderCoordinates = senderCoordinates.trim().ifBlank { "Non renseigné par l'expéditeur" },
-            senderDeviceInfo = "${SecurityUtils.getDeviceModel()} (${SecurityUtils.getOsVersion()})",
-            tag = tag.ifBlank { "Secret" },
-            isRead = false,
-            isFavorite = false
-        )
-        val id = messageDao.insertMessage(msg)
-        Result.success(id)
     }
 
-    suspend fun markMessageAsRead(messageId: Long) = withContext(Dispatchers.IO) {
-        messageDao.markAsRead(messageId)
+    suspend fun markMessageAsRead(userId: String, messageId: String): Result<Unit> {
+        val docPath = "users/$userId/messages/$messageId"
+        return try {
+            requireUserId(userId)
+            require(messageId.isNotBlank()) { "Identifiant du message manquant." }
+            db.collection("users").document(userId).collection("messages").document(messageId)
+                .update(
+                    mapOf(
+                        "read" to true,
+                        "updatedAt" to FieldValue.serverTimestamp()
+                    )
+                ).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.UPDATE, docPath)
+            Result.failure(e)
+        }
     }
 
-    suspend fun toggleFavorite(messageId: Long) = withContext(Dispatchers.IO) {
-        messageDao.toggleFavorite(messageId)
+    suspend fun toggleFavorite(userId: String, messageId: String, newFavorite: Boolean): Result<Unit> {
+        val docPath = "users/$userId/messages/$messageId"
+        return try {
+            requireUserId(userId)
+            require(messageId.isNotBlank()) { "Identifiant du message manquant." }
+            db.collection("users").document(userId).collection("messages").document(messageId)
+                .update(
+                    mapOf(
+                        "favorite" to newFavorite,
+                        "updatedAt" to FieldValue.serverTimestamp()
+                    )
+                ).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.UPDATE, docPath)
+            Result.failure(e)
+        }
     }
 
-    suspend fun unlockCoordinatesImmediately(messageId: Long) = withContext(Dispatchers.IO) {
-        messageDao.unlockCoordinatesImmediately(messageId)
+    suspend fun unlockCoordinatesImmediately(userId: String, messageId: String): Result<Unit> {
+        val docPath = "users/$userId/messages/$messageId"
+        return try {
+            requireUserId(userId)
+            require(messageId.isNotBlank()) { "Identifiant du message manquant." }
+            db.collection("users").document(userId).collection("messages").document(messageId)
+                .update(
+                    mapOf(
+                        "revealedManually" to true,
+                        "unlockAtMillis" to System.currentTimeMillis(),
+                        "updatedAt" to FieldValue.serverTimestamp()
+                    )
+                ).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.UPDATE, docPath)
+            Result.failure(e)
+        }
     }
 
-    suspend fun deleteMessage(messageId: Long) = withContext(Dispatchers.IO) {
-        messageDao.deleteMessage(messageId)
+    suspend fun deleteMessage(userId: String, messageId: String): Result<Unit> {
+        val docPath = "users/$userId/messages/$messageId"
+        return try {
+            requireUserId(userId)
+            require(messageId.isNotBlank()) { "Identifiant du message manquant." }
+            db.collection("users").document(userId).collection("messages").document(messageId)
+                .delete().await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.DELETE, docPath)
+            Result.failure(e)
+        }
     }
 
-    suspend fun removeSavedAccount(userId: Long) = withContext(Dispatchers.IO) {
-        userDao.deleteUser(userId)
-        if (_currentUser.value?.id == userId) {
-            _currentUser.value = null
-            _currentSession.value = null
+    suspend fun revokeSession(userId: String, sessionId: String): Result<Unit> {
+        val docPath = "users/$userId/sessions/$sessionId"
+        return try {
+            requireUserId(userId)
+            require(sessionId.isNotBlank()) { "Identifiant de session manquant." }
+            db.collection("users").document(userId).collection("sessions").document(sessionId)
+                .update(
+                    mapOf(
+                        "active" to false,
+                        "updatedAt" to FieldValue.serverTimestamp()
+                    )
+                ).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.UPDATE, docPath)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun revokeOtherSessions(userId: String, currentSessionId: String?): Result<Unit> {
+        val path = "users/$userId/sessions"
+        return try {
+            requireUserId(userId)
+            val activeSnapshots = db.collection("users").document(userId).collection("sessions")
+                .whereEqualTo("active", true)
+                .get()
+                .await()
+            for (doc in activeSnapshots.documents) {
+                if (doc.id != currentSessionId) {
+                    doc.reference.update(
+                        mapOf(
+                            "active" to false,
+                            "updatedAt" to FieldValue.serverTimestamp()
+                        )
+                    ).await()
+                }
+            }
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.UPDATE, path)
+            Result.failure(e)
         }
     }
 }

@@ -2,7 +2,6 @@ package com.example
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
-import com.example.ui.AuthUiState
 import com.example.ui.screens.AuthScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
@@ -26,11 +25,9 @@ class GreetingScreenshotTest {
     composeTestRule.setContent {
       MyApplicationTheme {
         AuthScreen(
-          state = AuthUiState(),
-          onModeChange = {},
-          onInputChange = { _, _, _, _, _, _ -> },
-          onLoginSubmit = {},
-          onRegisterSubmit = {}
+          isLoading = false,
+          errorMessage = null,
+          onGoogleSignInClick = {}
         )
       }
     }

@@ -20,17 +20,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.Devices
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -44,10 +40,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.model.SessionLogEntity
+import com.example.data.model.SessionLog
+import com.example.ui.theme.BlueOnPrimaryContainer
 import com.example.ui.theme.BluePrimary
 import com.example.ui.theme.BluePrimaryContainer
-import com.example.ui.theme.BlueOnPrimaryContainer
 import com.example.ui.theme.SlateBorder
 import com.example.ui.theme.SlateTextMuted
 import com.example.ui.theme.SlateTextPrimary
@@ -56,15 +52,15 @@ import com.example.ui.theme.StatusError
 import com.example.ui.theme.StatusSuccess
 import com.example.ui.theme.WhiteBackground
 import com.example.ui.theme.WhiteSurface
+import com.google.firebase.Timestamp
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 @Composable
 fun SessionsHistoryScreen(
-    sessions: List<SessionLogEntity>,
-    currentSession: SessionLogEntity?,
-    onRevokeSession: (Long) -> Unit,
+    sessions: List<SessionLog>,
+    currentSessionId: String?,
+    onRevokeSession: (String) -> Unit,
     onRevokeOtherSessions: () -> Unit
 ) {
     Column(
@@ -73,7 +69,6 @@ fun SessionsHistoryScreen(
             .background(WhiteBackground)
             .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
-        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -87,7 +82,7 @@ fun SessionsHistoryScreen(
                     color = SlateTextPrimary
                 )
                 Text(
-                    text = "Sessions enregistrées en base de données sécurisée",
+                    text = "Sessions synchronisées sur Cloud Firestore",
                     fontSize = 13.sp,
                     color = SlateTextSecondary
                 )
@@ -104,14 +99,13 @@ fun SessionsHistoryScreen(
                 ) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = StatusSuccess, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Audit actif", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF065F46))
+                    Text("Cloud Sync", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF065F46))
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Security Info Bento Banner
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -135,7 +129,7 @@ fun SessionsHistoryScreen(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Chaque connexion à votre compte enregistre l'empreinte de l'appareil, l'adresse réseau et l'horodatage en base locale chiffrée.",
+                        text = "Chaque connexion à votre compte Google enregistre l'empreinte de l'appareil et l'horodatage serveur dans votre base Cloud Firestore.",
                         fontSize = 11.sp,
                         color = BlueOnPrimaryContainer.copy(alpha = 0.8f),
                         lineHeight = 15.sp
@@ -146,8 +140,7 @@ fun SessionsHistoryScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Revoke Other Sessions Button
-        if (sessions.size > 1) {
+        if (sessions.count { it.active && it.id != currentSessionId } > 0) {
             OutlinedButton(
                 onClick = onRevokeOtherSessions,
                 modifier = Modifier
@@ -164,7 +157,6 @@ fun SessionsHistoryScreen(
             Spacer(modifier = Modifier.height(14.dp))
         }
 
-        // Sessions List
         Text(
             text = "HISTORIQUE DÉTAILLÉ (${sessions.size})",
             fontSize = 11.sp,
@@ -180,7 +172,7 @@ fun SessionsHistoryScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(sessions, key = { it.id }) { session ->
-                val isCurrent = currentSession?.id == session.id
+                val isCurrent = currentSessionId != null && currentSessionId == session.id
                 SessionCard(
                     session = session,
                     isCurrent = isCurrent,
@@ -193,11 +185,12 @@ fun SessionsHistoryScreen(
 
 @Composable
 fun SessionCard(
-    session: SessionLogEntity,
+    session: SessionLog,
     isCurrent: Boolean,
     onRevoke: () -> Unit
 ) {
-    val dateStr = SimpleDateFormat("dd MMMM yyyy 'à' HH:mm", Locale.FRENCH).format(Date(session.loginTimestamp))
+    val displayTimestamp = session.createdAt ?: session.updatedAt ?: Timestamp.now()
+    val dateStr = SimpleDateFormat("dd MMMM yyyy 'à' HH:mm", Locale.FRENCH).format(displayTimestamp.toDate())
     val tokenPreview = session.sessionToken.take(16) + "..."
 
     Card(
@@ -278,7 +271,7 @@ fun SessionCard(
                             )
                         }
                     }
-                } else if (session.isActive) {
+                } else if (session.active) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = Color(0xFFEFF6FF)
@@ -308,7 +301,6 @@ fun SessionCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Details info Bento sub-card
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -324,7 +316,7 @@ fun SessionCard(
                 DetailRow(label = "Jeton de session :", value = tokenPreview, isMonospace = true)
             }
 
-            if (!isCurrent && session.isActive) {
+            if (!isCurrent && session.active) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),

@@ -1,0 +1,214 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile and anonymous link configuration.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the profile owner."
+        },
+        "username": {
+          "type": "string",
+          "description": "Display username shown on the user's anonymous link."
+        },
+        "email": {
+          "type": "string",
+          "description": "Authenticated Google account email (owner-only PII)."
+        },
+        "profilePicUri": {
+          "type": "string",
+          "description": "Preset avatar key or profile photo URL/URI."
+        },
+        "bio": {
+          "type": "string",
+          "description": "Welcome message displayed on the user's public link."
+        },
+        "uniqueLinkSlug": {
+          "type": "string",
+          "description": "Unique URL slug for receiving anonymous messages."
+        },
+        "linkActive": {
+          "type": "boolean",
+          "description": "Whether the user's anonymous link is currently accepting messages."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of profile creation (clients must submit FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last profile update (clients must submit FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "username",
+        "email",
+        "uniqueLinkSlug",
+        "linkActive",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SessionLog": {
+      "title": "SessionLog",
+      "description": "Recorded authentication session audit entry for the user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the session owner."
+        },
+        "username": {
+          "type": "string",
+          "description": "Username associated with the session."
+        },
+        "deviceName": {
+          "type": "string",
+          "description": "Device manufacturer and model."
+        },
+        "osVersion": {
+          "type": "string",
+          "description": "Android OS version string."
+        },
+        "ipAddress": {
+          "type": "string",
+          "description": "Recorded network label."
+        },
+        "locationEstimate": {
+          "type": "string",
+          "description": "Authentication security context label."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether the session is currently active or revoked."
+        },
+        "sessionToken": {
+          "type": "string",
+          "description": "Opaque session audit identifier."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when session started (clients must submit FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when session was last updated (clients must submit FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "username",
+        "deviceName",
+        "osVersion",
+        "ipAddress",
+        "locationEstimate",
+        "active",
+        "sessionToken",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AnonymousMessage": {
+      "title": "AnonymousMessage",
+      "description": "Encrypted anonymous message with 4-day sender identity countdown.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the recipient user."
+        },
+        "messageText": {
+          "type": "string",
+          "description": "Anonymous message body."
+        },
+        "receivedAtMillis": {
+          "type": "integer",
+          "description": "Epoch milliseconds when the message was received."
+        },
+        "unlockAtMillis": {
+          "type": "integer",
+          "description": "Epoch milliseconds when sender coordinates unlock."
+        },
+        "senderPseudo": {
+          "type": "string",
+          "description": "Optional pseudonym or hint provided by sender."
+        },
+        "senderCoordinates": {
+          "type": "string",
+          "description": "Sender contact coordinates revealed after countdown."
+        },
+        "senderDeviceInfo": {
+          "type": "string",
+          "description": "Sender device metadata."
+        },
+        "tag": {
+          "type": "string",
+          "enum": ["Bienvenue", "Secret", "Compliment", "Vérité", "Question"],
+          "description": "Category tag of the anonymous message."
+        },
+        "read": {
+          "type": "boolean",
+          "description": "Whether the recipient has read the message."
+        },
+        "favorite": {
+          "type": "boolean",
+          "description": "Whether the recipient marked the message as favorite."
+        },
+        "revealedManually": {
+          "type": "boolean",
+          "description": "Whether the recipient unlocked the countdown early."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of message creation (clients must submit FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last message update (clients must submit FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "messageText",
+        "receivedAtMillis",
+        "unlockAtMillis",
+        "senderPseudo",
+        "tag",
+        "read",
+        "favorite",
+        "revealedManually",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Owner-only user profile documents keyed by Firebase Auth UID."
+    },
+    "/users/{userId}/sessions/{sessionId}": {
+      "schema": {
+        "$ref": "#/entities/SessionLog"
+      },
+      "description": "User-scoped authentication session logs."
+    },
+    "/users/{userId}/messages/{messageId}": {
+      "schema": {
+        "$ref": "#/entities/AnonymousMessage"
+      },
+      "description": "User-scoped anonymous messages with 4-day reveal countdown."
+    }
+  }
+}

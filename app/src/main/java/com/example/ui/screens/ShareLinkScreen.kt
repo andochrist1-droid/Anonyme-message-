@@ -65,7 +65,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.model.UserEntity
+import com.example.data.model.UserProfile
 import com.example.ui.components.UserAvatar
 import com.example.ui.theme.BluePrimary
 import com.example.ui.theme.BluePrimaryContainer
@@ -82,7 +82,7 @@ import com.example.ui.theme.WhiteSurface
 
 @Composable
 fun ShareLinkScreen(
-    user: UserEntity,
+    user: UserProfile,
     totalMessagesCount: Int,
     onSendSimulatedMessage: (message: String, pseudo: String, coordinates: String, tag: String) -> Unit,
     simulatedSuccessNotice: String?,

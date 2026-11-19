@@ -25,14 +25,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -61,7 +60,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.model.UserEntity
+import com.example.data.model.UserProfile
 import com.example.ui.components.AVATAR_PRESETS
 import com.example.ui.components.UserAvatar
 import com.example.ui.theme.BluePrimary
@@ -71,16 +70,15 @@ import com.example.ui.theme.SlateTextMuted
 import com.example.ui.theme.SlateTextPrimary
 import com.example.ui.theme.SlateTextSecondary
 import com.example.ui.theme.StatusError
-import com.example.ui.theme.StatusSuccess
 import com.example.ui.theme.WhiteBackground
 import com.example.ui.theme.WhiteSurface
 
 @Composable
 fun SettingsScreen(
-    user: UserEntity,
+    user: UserProfile,
     totalSessionsCount: Int,
     totalMessagesCount: Int,
-    onUpdateProfile: (username: String, bio: String, photoUri: String, isLinkActive: Boolean) -> Unit,
+    onUpdateProfile: (username: String, bio: String, photoUri: String, linkActive: Boolean) -> Unit,
     onLogout: () -> Unit
 ) {
     var showEditProfileDialog by remember { mutableStateOf(false) }
@@ -101,14 +99,13 @@ fun SettingsScreen(
             color = SlateTextPrimary
         )
         Text(
-            text = "Compte, sécurité et configuration du lien anonyme",
+            text = "Compte Google, sécurité Firestore et lien anonyme",
             fontSize = 13.sp,
             color = SlateTextSecondary
         )
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        // Profile Card with Edit button
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -179,7 +176,6 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Section: Lien & Confidentialité
         Text(
             text = "LIEN ANONYME & RÉCEPTION",
             fontSize = 11.sp,
@@ -215,7 +211,7 @@ fun SettingsScreen(
                     }
 
                     Switch(
-                        checked = user.isLinkActive,
+                        checked = user.linkActive,
                         onCheckedChange = { isActive ->
                             onUpdateProfile(user.username, user.bio, user.profilePicUri, isActive)
                         },
@@ -258,9 +254,8 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Section: Sécurité & Protocole
         Text(
-            text = "SÉCURITÉ & PROTOCOLE 4 JOURS",
+            text = "SÉCURITÉ & CLOUD FIRESTORE",
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             color = BluePrimary,
@@ -288,25 +283,24 @@ fun SettingsScreen(
 
                 SettingActionRow(
                     icon = Icons.Default.Lock,
-                    title = "Chiffrement AES-256 GCM",
-                    subtitle = "Clé locale dérivée et isolée",
+                    title = "Isolation Zero-Trust Firestore",
+                    subtitle = "Accès strictement réservé à votre UID Google",
                     onClick = { showSecurityInfoDialog = true }
                 )
 
                 HorizontalDivider(color = Color(0xFFF1F5F9))
 
                 SettingActionRow(
-                    icon = Icons.Default.Storage,
-                    title = "Base de données SQLite sécurisée",
+                    icon = Icons.Default.CloudDone,
+                    title = "Base de données Cloud Firestore",
                     subtitle = "$totalSessionsCount session(s) • $totalMessagesCount message(s)",
-                    onClick = {}
+                    onClick = { showSecurityInfoDialog = true }
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Logout Button
         Button(
             onClick = onLogout,
             modifier = Modifier
@@ -324,19 +318,17 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(16.dp))
     }
 
-    // Edit Profile Dialog
     if (showEditProfileDialog) {
         EditProfileDialog(
             user = user,
             onDismiss = { showEditProfileDialog = false },
             onSave = { newUsername, newBio, newPhoto ->
-                onUpdateProfile(newUsername, newBio, newPhoto, user.isLinkActive)
+                onUpdateProfile(newUsername, newBio, newPhoto, user.linkActive)
                 showEditProfileDialog = false
             }
         )
     }
 
-    // Security Details Dialog
     if (showSecurityInfoDialog) {
         AlertDialog(
             onDismissRequest = { showSecurityInfoDialog = false },
@@ -364,13 +356,13 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        "2. Historique des sessions en base :",
+                        "2. Persistance Cloud Firestore :",
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp,
                         color = BluePrimary
                     )
                     Text(
-                        "Toutes les connexions sont sauvegardées localement dans la table Room 'sessions' avec IP simulée, nom de machine et empreinte de jeton.",
+                        "Votre profil, vos messages et votre journal de sessions sont stockés dans Firebase Cloud Firestore sous /users/{uid} avec règles d'accès strictes par identifiant Google.",
                         fontSize = 12.sp,
                         color = SlateTextSecondary
                     )
@@ -392,7 +384,7 @@ fun SettingsScreen(
 
 @Composable
 fun EditProfileDialog(
-    user: UserEntity,
+    user: UserProfile,
     onDismiss: () -> Unit,
     onSave: (username: String, bio: String, photoUri: String) -> Unit
 ) {
@@ -442,7 +434,6 @@ fun EditProfileDialog(
                     Text("Changer la photo", color = BluePrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
 
-                // Presets
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -500,7 +491,7 @@ fun EditProfileDialog(
         confirmButton = {
             Button(
                 onClick = { onSave(username, bio, photoUri) },
-                enabled = username.isNotBlank(),
+                enabled = username.trim().length in 2..40,
                 colors = ButtonDefaults.buttonColors(containerColor = BluePrimary),
                 shape = RoundedCornerShape(14.dp)
             ) {

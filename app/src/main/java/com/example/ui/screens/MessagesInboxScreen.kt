@@ -2,8 +2,6 @@ package com.example.ui.screens
 
 import android.content.Context
 import android.content.Intent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,17 +23,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Mail
-import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Timer
@@ -46,7 +41,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -62,7 +56,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -72,18 +65,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.model.AnonymousMessageEntity
+import com.example.data.model.AnonymousMessage
 import com.example.ui.theme.BluePrimary
 import com.example.ui.theme.BluePrimaryContainer
-import com.example.ui.theme.BlueSecondary
-import com.example.ui.theme.BlueTertiaryContainer
 import com.example.ui.theme.SlateBorder
 import com.example.ui.theme.SlateTextMuted
 import com.example.ui.theme.SlateTextPrimary
 import com.example.ui.theme.SlateTextSecondary
 import com.example.ui.theme.StatusError
 import com.example.ui.theme.StatusSuccess
-import com.example.ui.theme.StatusWarning
 import com.example.ui.theme.WhiteBackground
 import com.example.ui.theme.WhiteSurface
 import com.example.util.SecurityUtils
@@ -93,16 +83,16 @@ import java.util.Locale
 
 @Composable
 fun MessagesInboxScreen(
-    messages: List<AnonymousMessageEntity>,
+    messages: List<AnonymousMessage>,
     currentFilter: String,
     onFilterChange: (String) -> Unit,
     currentTime: Long,
-    onMarkAsRead: (Long) -> Unit,
-    onToggleFavorite: (Long) -> Unit,
-    onUnlockImmediately: (Long) -> Unit,
-    onDeleteMessage: (Long) -> Unit
+    onMarkAsRead: (String) -> Unit,
+    onToggleFavorite: (String, Boolean) -> Unit,
+    onUnlockImmediately: (String) -> Unit,
+    onDeleteMessage: (String) -> Unit
 ) {
-    var selectedMessageForDetail by remember { mutableStateOf<AnonymousMessageEntity?>(null) }
+    var selectedMessageForDetail by remember { mutableStateOf<AnonymousMessage?>(null) }
 
     Column(
         modifier = Modifier
@@ -141,7 +131,7 @@ fun MessagesInboxScreen(
                 ) {
                     Icon(Icons.Default.Security, contentDescription = null, tint = BluePrimary, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("AES-256", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BluePrimary)
+                    Text("Firestore", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BluePrimary)
                 }
             }
         }
@@ -208,7 +198,7 @@ fun MessagesInboxScreen(
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Partagez votre lien public pour commencer à recevoir des messages chiffrés avec compte à rebours !",
+                        text = "Partagez votre lien public pour commencer à recevoir des messages synchronisés sur Cloud Firestore !",
                         fontSize = 13.sp,
                         color = SlateTextSecondary,
                         textAlign = TextAlign.Center,
@@ -226,10 +216,12 @@ fun MessagesInboxScreen(
                         message = msg,
                         currentTime = currentTime,
                         onClick = {
-                            onMarkAsRead(msg.id)
+                            if (!msg.read) {
+                                onMarkAsRead(msg.id)
+                            }
                             selectedMessageForDetail = msg
                         },
-                        onToggleFavorite = { onToggleFavorite(msg.id) }
+                        onToggleFavorite = { onToggleFavorite(msg.id, msg.favorite) }
                     )
                 }
             }
@@ -254,33 +246,32 @@ fun MessagesInboxScreen(
 
 @Composable
 fun MessageCard(
-    message: AnonymousMessageEntity,
+    message: AnonymousMessage,
     currentTime: Long,
     onClick: () -> Unit,
     onToggleFavorite: () -> Unit
 ) {
-    val remaining = if (message.isRevealedManually) 0L else (message.unlockAt - currentTime).coerceAtLeast(0L)
+    val remaining = if (message.revealedManually) 0L else (message.unlockAtMillis - currentTime).coerceAtLeast(0L)
     val isUnlocked = remaining <= 0L
-    val dateStr = SimpleDateFormat("dd MMM, HH:mm", Locale.FRENCH).format(Date(message.receivedAt))
+    val dateStr = SimpleDateFormat("dd MMM, HH:mm", Locale.FRENCH).format(Date(message.receivedAtMillis))
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .border(
-                width = if (!message.isRead) 1.5.dp else 1.dp,
-                color = if (!message.isRead) BluePrimary else SlateBorder,
+                width = if (!message.read) 1.5.dp else 1.dp,
+                color = if (!message.read) BluePrimary else SlateBorder,
                 shape = RoundedCornerShape(28.dp)
             )
             .testTag("message_card_${message.id}"),
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (!message.isRead) Color(0xFFFAFDFE) else WhiteSurface
+            containerColor = if (!message.read) Color(0xFFFAFDFE) else WhiteSurface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
-            // Header: Tag, Unread dot, Date, Favorite
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -300,7 +291,7 @@ fun MessageCard(
                         )
                     }
 
-                    if (!message.isRead) {
+                    if (!message.read) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Box(
                             modifier = Modifier
@@ -323,9 +314,9 @@ fun MessageCard(
                         modifier = Modifier.size(28.dp)
                     ) {
                         Icon(
-                            imageVector = if (message.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            imageVector = if (message.favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = "Favori",
-                            tint = if (message.isFavorite) Color(0xFFEF4444) else SlateTextMuted,
+                            tint = if (message.favorite) Color(0xFFEF4444) else SlateTextMuted,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -334,7 +325,6 @@ fun MessageCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Message text
             Text(
                 text = message.messageText,
                 fontSize = 15.sp,
@@ -347,7 +337,6 @@ fun MessageCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 4-Day Countdown Bento Pill Section
             Surface(
                 shape = RoundedCornerShape(18.dp),
                 color = if (isUnlocked) Color(0xFFECFDF5) else Color(0xFFF8FAFF),
@@ -402,16 +391,16 @@ fun MessageCard(
 
 @Composable
 fun MessageDetailDialog(
-    message: AnonymousMessageEntity,
+    message: AnonymousMessage,
     currentTime: Long,
     onDismiss: () -> Unit,
     onUnlockNow: () -> Unit,
     onDelete: () -> Unit
 ) {
     val context = LocalContext.current
-    val remaining = if (message.isRevealedManually) 0L else (message.unlockAt - currentTime).coerceAtLeast(0L)
+    val remaining = if (message.revealedManually) 0L else (message.unlockAtMillis - currentTime).coerceAtLeast(0L)
     val isUnlocked = remaining <= 0L
-    val total4Days = AnonymousMessageEntity.FOUR_DAYS_MS.toFloat()
+    val total4Days = AnonymousMessage.FOUR_DAYS_MS.toFloat()
     val progress = ((total4Days - remaining.toFloat()) / total4Days).coerceIn(0f, 1f)
 
     AlertDialog(
@@ -457,7 +446,6 @@ fun MessageDetailDialog(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
             ) {
-                // Main quote bubble in Bento card style
                 Surface(
                     shape = RoundedCornerShape(22.dp),
                     color = Color(0xFFF8FAFF),
@@ -492,7 +480,6 @@ fun MessageDetailDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Bento Countdown Box
                 Card(
                     shape = RoundedCornerShape(22.dp),
                     colors = CardDefaults.cardColors(
@@ -560,7 +547,6 @@ fun MessageDetailDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Coordinates display section
                 Text(
                     text = "Coordonnées de l'expéditeur :",
                     fontWeight = FontWeight.Bold,
@@ -603,7 +589,6 @@ fun MessageDetailDialog(
                                 modifier = Modifier.fillMaxWidth()
                             )
                         } else {
-                            // Unlocked actual details
                             Text(
                                 text = "Expéditeur : ${message.senderPseudo}",
                                 fontWeight = FontWeight.Bold,
@@ -629,7 +614,6 @@ fun MessageDetailDialog(
                     }
                 }
 
-                // Fast forward demonstration button if still locked
                 if (!isUnlocked) {
                     Spacer(modifier = Modifier.height(14.dp))
                     OutlinedButton(
@@ -650,7 +634,6 @@ fun MessageDetailDialog(
         },
         confirmButton = {
             Row {
-                // Share as story card
                 TextButton(
                     onClick = {
                         val shareIntent = Intent().apply {
@@ -658,7 +641,7 @@ fun MessageDetailDialog(
                             type = "text/plain"
                             putExtra(
                                 Intent.EXTRA_TEXT,
-                                "Message anonyme reçu : \"${message.messageText}\"\nEnvoyé via https://anonym.link"
+                                "Message anonyme reçu : \"${message.messageText}\"\nEnvoyé via https://secretlink.app"
                             )
                         }
                         context.startActivity(Intent.createChooser(shareIntent, "Partager ce message"))

@@ -1,0 +1,152 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable security primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Entity Validation Helpers
+    function isValidUserProfile(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.username is string && data.username.size() >= 2 && data.username.size() <= 40 &&
+             data.email is string && data.email.size() <= 150 &&
+             (!('profilePicUri' in data) || (data.profilePicUri is string && data.profilePicUri.size() <= 500)) &&
+             (!('bio' in data) || (data.bio is string && data.bio.size() <= 300)) &&
+             data.uniqueLinkSlug is string && data.uniqueLinkSlug.size() >= 3 && data.uniqueLinkSlug.size() <= 80 &&
+             data.linkActive is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidSessionLog(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.username is string && data.username.size() >= 1 && data.username.size() <= 40 &&
+             data.deviceName is string && data.deviceName.size() >= 1 && data.deviceName.size() <= 100 &&
+             data.osVersion is string && data.osVersion.size() >= 1 && data.osVersion.size() <= 80 &&
+             data.ipAddress is string && data.ipAddress.size() >= 1 && data.ipAddress.size() <= 80 &&
+             data.locationEstimate is string && data.locationEstimate.size() >= 1 && data.locationEstimate.size() <= 120 &&
+             data.active is bool &&
+             data.sessionToken is string && data.sessionToken.size() >= 8 && data.sessionToken.size() <= 128 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidAnonymousMessage(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.messageText is string && data.messageText.size() >= 1 && data.messageText.size() <= 1000 &&
+             data.receivedAtMillis is int && data.receivedAtMillis > 0 &&
+             data.unlockAtMillis is int && data.unlockAtMillis >= data.receivedAtMillis &&
+             data.senderPseudo is string && data.senderPseudo.size() >= 1 && data.senderPseudo.size() <= 80 &&
+             (!('senderCoordinates' in data) || (data.senderCoordinates is string && data.senderCoordinates.size() <= 200)) &&
+             (!('senderDeviceInfo' in data) || (data.senderDeviceInfo is string && data.senderDeviceInfo.size() <= 150)) &&
+             data.tag is string && data.tag in ['Bienvenue', 'Secret', 'Compliment', 'Vérité', 'Question'] &&
+             data.read is bool &&
+             data.favorite is bool &&
+             data.revealedManually is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // Owner-only user profile documents (contains PII email)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+
+      allow create: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       incoming().keys().hasAll(['userId', 'username', 'email', 'uniqueLinkSlug', 'linkActive', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'username', 'email', 'profilePicUri', 'bio', 'uniqueLinkSlug', 'linkActive', 'createdAt', 'updatedAt']) &&
+                       isValidUserProfile(incoming(), userId);
+
+      allow update: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       isValidUserProfile(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().email == existing().email &&
+                       incoming().uniqueLinkSlug == existing().uniqueLinkSlug &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['username', 'profilePicUri', 'bio', 'linkActive', 'updatedAt']);
+
+      allow delete: if isValidId(userId) && isOwner(userId);
+
+      // User-scoped session logs
+      match /sessions/{sessionId} {
+        allow get: if isValidId(userId) && isValidId(sessionId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId);
+
+        allow create: if isValidId(userId) &&
+                         isValidId(sessionId) &&
+                         isOwner(userId) &&
+                         incoming().keys().hasAll(['userId', 'username', 'deviceName', 'osVersion', 'ipAddress', 'locationEstimate', 'active', 'sessionToken', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'username', 'deviceName', 'osVersion', 'ipAddress', 'locationEstimate', 'active', 'sessionToken', 'createdAt', 'updatedAt']) &&
+                         isValidSessionLog(incoming(), userId);
+
+        allow update: if isValidId(userId) &&
+                         isValidId(sessionId) &&
+                         isOwner(userId) &&
+                         isValidSessionLog(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().sessionToken == existing().sessionToken &&
+                         incoming().createdAt == existing().createdAt &&
+                         existing().active == true &&
+                         incoming().active == false &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['active', 'updatedAt']);
+
+        allow delete: if isValidId(userId) && isValidId(sessionId) && isOwner(userId);
+      }
+
+      // User-scoped anonymous messages
+      match /messages/{messageId} {
+        allow get: if isValidId(userId) && isValidId(messageId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId);
+
+        allow create: if isValidId(userId) &&
+                         isValidId(messageId) &&
+                         isOwner(userId) &&
+                         incoming().keys().hasAll(['userId', 'messageText', 'receivedAtMillis', 'unlockAtMillis', 'senderPseudo', 'tag', 'read', 'favorite', 'revealedManually', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'messageText', 'receivedAtMillis', 'unlockAtMillis', 'senderPseudo', 'senderCoordinates', 'senderDeviceInfo', 'tag', 'read', 'favorite', 'revealedManually', 'createdAt', 'updatedAt']) &&
+                         isValidAnonymousMessage(incoming(), userId);
+
+        allow update: if isValidId(userId) &&
+                         isValidId(messageId) &&
+                         isOwner(userId) &&
+                         isValidAnonymousMessage(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().messageText == existing().messageText &&
+                         incoming().receivedAtMillis == existing().receivedAtMillis &&
+                         incoming().createdAt == existing().createdAt &&
+                         (
+                           incoming().diff(existing()).affectedKeys().hasOnly(['read', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['favorite', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['revealedManually', 'unlockAtMillis', 'updatedAt'])
+                         );
+
+        allow delete: if isValidId(userId) && isValidId(messageId) && isOwner(userId);
+      }
+    }
+  }
+}
